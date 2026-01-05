@@ -1,0 +1,22 @@
+
+# Core ML
+torch
+torchaudio
+torchvision
+numpy
+pandas
+scikit-learn
+scipy
+librosa
+matplotlib
+seaborn
+
+# Backend
+fastapi
+uvicorn[standard]
+python-multipart
+websockets
+
+# Utils
+tqdm
+requests
