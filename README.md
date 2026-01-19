@@ -69,7 +69,27 @@ An end-to-end AI-powered predictive maintenance system using **audio, vibration,
 ```
 
 ---
+## Visuals
 
+<img width="1470" height="684" alt="Screenshot 2026-01-19 at 12 39 00 AM" src="https://github.com/user-attachments/assets/3d761ef5-8b52-4113-b5dc-666433c4610e" />
+
+<img width="1470" height="493" alt="Screenshot 2026-01-19 at 12 39 11 AM" src="https://github.com/user-attachments/assets/e9bb600b-20ed-4249-8df3-d1d49b1262bd" />
+
+<img width="962" height="799" alt="Screenshot 2026-01-19 at 12 40 57 AM" src="https://github.com/user-attachments/assets/9f099c64-9745-4632-b4e7-5bf78f73d541" />
+
+<img width="962" height="800" alt="Screenshot 2026-01-19 at 12 41 11 AM" src="https://github.com/user-attachments/assets/b9876320-54bd-4e8d-a289-eb71a3be9d44" />
+
+<img width="783" height="797" alt="Screenshot 2026-01-19 at 12 43 35 AM" src="https://github.com/user-attachments/assets/e1d77826-d2c2-46b7-a9d3-d76926f39d59" />
+
+<img width="777" height="781" alt="Screenshot 2026-01-19 at 12 43 46 AM" src="https://github.com/user-attachments/assets/8be1b595-93cc-4ed8-af65-a6752254ce1e" />
+
+<img width="778" height="729" alt="Screenshot 2026-01-19 at 12 44 58 AM" src="https://github.com/user-attachments/assets/3ed13ec4-390c-4a11-8b54-b456ee5227bb" />
+
+<img width="983" height="804" alt="Screenshot 2026-01-19 at 12 39 32 AM" src="https://github.com/user-attachments/assets/1e6ab2c1-cd99-4866-a749-854125ee841d" />
+
+<img width="765" height="676" alt="Screenshot 2026-01-19 at 12 43 20 AM" src="https://github.com/user-attachments/assets/ad87d70e-9d31-4ee4-9062-c952b6380b70" />
+
+---
 ## 📁 Project Structure
 
 ```
