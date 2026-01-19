@@ -222,6 +222,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## 👤 Author
+## 👤 Author - Dipen Prajapati
 
 Built as a demonstration of industrial AI predictive maintenance capabilities.
