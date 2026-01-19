@@ -85,7 +85,7 @@ An end-to-end AI-powered predictive maintenance system using **audio, vibration,
 
 <img width="778" height="729" alt="Screenshot 2026-01-19 at 12 44 58 AM" src="https://github.com/user-attachments/assets/3ed13ec4-390c-4a11-8b54-b456ee5227bb" />
 
-<img width="983" height="804" alt="Screenshot 2026-01-19 at 12 39 32 AM" src="https://github.com/user-attachments/assets/1e6ab2c1-cd99-4866-a749-854125ee841d" />
+<img width="848" height="749" alt="Screenshot 2026-01-19 at 1 22 06 AM" src="https://github.com/user-attachments/assets/40c16ee7-fb45-4320-bedc-31dc6e706988" />
 
 <img width="765" height="676" alt="Screenshot 2026-01-19 at 12 43 20 AM" src="https://github.com/user-attachments/assets/ad87d70e-9d31-4ee4-9062-c952b6380b70" />
 
