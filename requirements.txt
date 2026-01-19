@@ -1,22 +1,23 @@
-
 # Core ML
-torch
-torchaudio
-torchvision
-numpy
-pandas
-scikit-learn
-scipy
-librosa
-matplotlib
-seaborn
+torch>=2.0.0
+torchaudio>=2.0.0
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+scipy>=1.10.0
+librosa>=0.10.0
+joblib>=1.3.0
 
 # Backend
-fastapi
-uvicorn[standard]
-python-multipart
-websockets
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+python-multipart>=0.0.6
+websockets>=11.0
+
+# Visualization (optional for backend)
+matplotlib>=3.7.0
+seaborn>=0.12.0
 
 # Utils
-tqdm
-requests
+tqdm>=4.65.0
+pydantic>=2.0.0

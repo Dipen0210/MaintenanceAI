@@ -39,7 +39,7 @@ class RULEstimator:
         self.feature_cols = None
         
         # Load model with metadata
-        checkpoint = torch.load(model_path, map_location=self.device)
+        checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
         
         if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
             input_size = checkpoint.get('input_size', 17)

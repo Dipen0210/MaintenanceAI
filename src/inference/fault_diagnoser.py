@@ -6,18 +6,18 @@ Loads trained classifier and diagnoses bearing faults from vibration signals.
 import torch
 import numpy as np
 from pathlib import Path
-from typing import Tuple, Optional, List, Dict
+from typing import Optional, List, Dict
 
-# Import model architecture
+# Import model architectures
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from src.models.vibration_classifier import VibrationClassifier
+from src.models.vibration_classifier import VibrationClassifier1D, VibrationClassifier2D
 
 
 class FaultDiagnoser:
-    """Diagnoses bearing faults from vibration signals."""
+    """Diagnoses bearing faults from vibration signals or spectrograms."""
     
-    # Default class labels (should match training)
+    # Default class labels
     DEFAULT_LABELS = [
         'Normal',
         'Ball_007', 'Ball_014', 'Ball_021',
@@ -25,7 +25,7 @@ class FaultDiagnoser:
         'OR_007', 'OR_014', 'OR_021'
     ]
     
-    # Human-readable fault descriptions
+    # Fault descriptions
     FAULT_DESCRIPTIONS = {
         'Normal': 'No fault detected - bearing is healthy',
         'Ball_007': 'Ball fault (0.007" diameter)',
@@ -44,102 +44,86 @@ class FaultDiagnoser:
         model_path: str,
         device: Optional[str] = None,
         class_labels: Optional[List[str]] = None,
-        window_size: int = 2048
     ):
-        """
-        Args:
-            model_path: Path to trained .pth file
-            device: 'cuda' or 'cpu' (auto-detect if None)
-            class_labels: List of class label names
-            window_size: Expected input window size
-        """
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.class_labels = class_labels or self.DEFAULT_LABELS
-        self.window_size = window_size
-        self.num_classes = len(self.class_labels)
         
-        # Load model
-        self.model = VibrationClassifier(num_classes=self.num_classes)
+        # Load checkpoint
+        checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
         
-        # Try loading with metadata first
-        checkpoint = torch.load(model_path, map_location=self.device)
-        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-            self.model.load_state_dict(checkpoint['model_state_dict'])
+        # Get metadata
+        if isinstance(checkpoint, dict):
+            self.num_classes = checkpoint.get('num_classes', 10)
+            self.data_type = checkpoint.get('data_type', checkpoint.get('model_type', '1D'))
             if 'label_encoder_classes' in checkpoint:
                 self.class_labels = checkpoint['label_encoder_classes']
+            state_dict = checkpoint.get('model_state_dict', checkpoint)
         else:
-            self.model.load_state_dict(checkpoint)
+            self.num_classes = len(self.class_labels)
+            self.data_type = '1D'
+            state_dict = checkpoint
         
+        # Create appropriate model
+        if self.data_type == '2D':
+            self.model = VibrationClassifier2D(num_classes=self.num_classes)
+        else:
+            self.model = VibrationClassifier1D(num_classes=self.num_classes)
+        
+        self.model.load_state_dict(state_dict)
         self.model.to(self.device)
         self.model.eval()
+        
+        print(f"Loaded {self.data_type} vibration model with {self.num_classes} classes")
     
     def preprocess(self, signal: np.ndarray) -> torch.Tensor:
-        """Preprocess vibration signal for inference."""
-        # Ensure correct length
-        if len(signal) > self.window_size:
-            signal = signal[:self.window_size]
-        elif len(signal) < self.window_size:
-            signal = np.pad(signal, (0, self.window_size - len(signal)))
+        """Preprocess input signal or image."""
+        signal = signal.astype(np.float32)
         
         # Normalize
         signal = (signal - np.mean(signal)) / (np.std(signal) + 1e-8)
         
-        # Convert to tensor: [1, 1, window_size]
-        tensor = torch.tensor(signal, dtype=torch.float32)
-        tensor = tensor.unsqueeze(0).unsqueeze(0)
+        if self.data_type == '2D':
+            # Expect 2D input (H, W) or (C, H, W)
+            if len(signal.shape) == 2:
+                tensor = torch.tensor(signal).unsqueeze(0).unsqueeze(0)  # [1, 1, H, W]
+            elif len(signal.shape) == 3:
+                tensor = torch.tensor(signal).unsqueeze(0)  # [1, C, H, W]
+            else:
+                raise ValueError(f"Unexpected 2D input shape: {signal.shape}")
+        else:
+            # Expect 1D input (signal_length,)
+            if len(signal.shape) == 1:
+                tensor = torch.tensor(signal).unsqueeze(0).unsqueeze(0)  # [1, 1, L]
+            else:
+                raise ValueError(f"Unexpected 1D input shape: {signal.shape}")
         
         return tensor.to(self.device)
     
     def predict(self, signal: np.ndarray) -> Dict:
-        """
-        Predict fault type from vibration signal.
-        
-        Args:
-            signal: 1D numpy array of vibration samples
-            
-        Returns:
-            Dict with fault_type, confidence, description, and all_probs
-        """
-        # Preprocess
+        """Predict fault type from vibration signal or spectrogram."""
         tensor = self.preprocess(signal)
         
-        # Get prediction
         with torch.no_grad():
             logits = self.model(tensor)
             probs = torch.softmax(logits, dim=1)
         
-        # Get top prediction
         confidence, pred_idx = torch.max(probs, dim=1)
         pred_idx = pred_idx.item()
         confidence = confidence.item()
         
-        fault_type = self.class_labels[pred_idx]
-        description = self.FAULT_DESCRIPTIONS.get(fault_type, 'Unknown fault')
-        
-        # Get all probabilities
-        all_probs = {
-            self.class_labels[i]: probs[0, i].item()
-            for i in range(self.num_classes)
-        }
+        fault_type = self.class_labels[pred_idx] if pred_idx < len(self.class_labels) else f'Class_{pred_idx}'
+        description = self.FAULT_DESCRIPTIONS.get(fault_type, f'Fault type: {fault_type}')
         
         return {
             'fault_type': fault_type,
             'confidence': confidence,
             'description': description,
-            'is_faulty': fault_type != 'Normal',
-            'all_probabilities': all_probs
+            'is_faulty': 'normal' not in fault_type.lower(),
         }
-    
-    def predict_batch(self, signals: List[np.ndarray]) -> List[Dict]:
-        """Predict on multiple signals."""
-        results = []
-        for signal in signals:
-            results.append(self.predict(signal))
-        return results
     
     def get_severity(self, fault_type: str) -> str:
         """Get fault severity level."""
-        if fault_type == 'Normal':
+        if 'Normal' in fault_type or 'normal' in fault_type:
             return 'None'
         elif '007' in fault_type:
             return 'Minor'

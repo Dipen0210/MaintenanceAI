@@ -1,126 +1,227 @@
-# 🏭 Predictive Maintenance AI System
+# 🏭 MaintenanceAI: Multimodal Equipment Health Monitoring
 
-An end-to-end AI-powered predictive maintenance system for industrial machines.
+An end-to-end AI-powered predictive maintenance system using **audio, vibration, and sensor data** for industrial machine health monitoring. Features real-time WebSocket streaming, CNN-based fault diagnosis, and LSTM/Transformer RUL prediction.
 
-## Features
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-14+-black.svg)](https://nextjs.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
 
-- 🔊 **Audio Anomaly Detection** - Detect abnormal machine sounds using autoencoders
-- ⚙️ **Vibration Fault Diagnosis** - Classify bearing faults from vibration signals (10 classes)
-- 📈 **RUL Prediction** - Predict Remaining Useful Life using Transformer/LSTM
-- 🏭 **Plant Intelligence** - Multi-machine health monitoring & maintenance prioritization
-- 📊 **Real-time Dashboard** - Next.js frontend with live updates
+---
 
-## Project Structure
+## ✨ Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🔊 **Audio Anomaly Detection** | Ensemble ML on MIMII dataset (fan, pump, valve) |
+| ⚙️ **Vibration Fault Diagnosis** | 2D CNN classifier, 10 bearing fault classes (98% accuracy) |
+| 📈 **RUL Prediction** | LSTM + Transformer ensemble on NASA C-MAPSS (RMSE < 15) |
+| 🏭 **Plant Intelligence** | Multi-machine health scoring & risk-based prioritization |
+| � **WebSocket Streaming** | Real-time machine status updates via WebSocket |
+| 📊 **Modern Dashboard** | Glassmorphism UI with area-based machine grouping |
+
+---
+
+## 🎯 Model Performance
+
+| Model | Dataset | Metric | Result |
+|-------|---------|--------|--------|
+| Audio Anomaly | MIMII DUE | AUC | > 0.96 |
+| Vibration CNN | CWRU Bearing | Accuracy | ~98% |
+| RUL LSTM | C-MAPSS FD001 | RMSE | ~15 cycles |
+| RUL Transformer | C-MAPSS FD001 | RMSE | ~14 cycles |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Frontend (Next.js)                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
+│  │  Dashboard   │  │ Area Pages   │  │ Machine Detail Pages   │ │
+│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
+│                            │                                     │
+│                    HTTP REST + WebSocket                         │
+└────────────────────────────┼────────────────────────────────────┘
+                             │
+┌────────────────────────────┼────────────────────────────────────┐
+│                      Backend (FastAPI)                           │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
+│  │ REST API     │  │ WebSocket    │  │ Plant Intelligence     │ │
+│  │ /plant/*     │  │ /ws/updates  │  │ Health Scoring         │ │
+│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
+│                            │                                     │
+│                     Inference Layer                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
+│  │ Audio        │  │ Vibration    │  │ RUL Estimator          │ │
+│  │ Detector     │  │ Diagnoser    │  │ (LSTM x4 + Trans x4)   │ │
+│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+                             │
+┌────────────────────────────┼────────────────────────────────────┐
+│                    Trained Models (12 total)                     │
+│  • audio_advanced_v2_{fan,pump,valve}.pkl                       │
+│  • vibration_classifier.pth (2D CNN, 10 classes)                │
+│  • rul_predictor_FD00{1,2,3,4}.pth (LSTM)                       │
+│  • rul_transformer_FD00{1,2,3,4}.pth (Transformer)              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📁 Project Structure
 
 ```
 MaintanenceAI/
+├── backend/
+│   ├── main.py                 # FastAPI app + simulation
+│   ├── routes/
+│   │   ├── predict.py          # Prediction endpoints
+│   │   └── websocket.py        # WebSocket real-time streaming
+│   └── services/
+│       ├── plant_intelligence.py  # Health scoring & maintenance queue
+│       └── sample_data.py         # Machine definitions (14 machines, 4 areas)
+├── frontend/
+│   └── src/
+│       ├── app/
+│       │   ├── page.tsx           # Main dashboard
+│       │   ├── area/[id]/page.tsx # Area detail pages
+│       │   └── machine/[id]/page.tsx # Machine detail pages
+│       ├── components/Dashboard.tsx  # UI components
+│       ├── hooks/useWebSocket.ts     # WebSocket hook
+│       └── lib/api.ts                # API client
 ├── src/
-│   ├── models/            # PyTorch model architectures
-│   ├── preprocessing/     # Data processing pipelines
-│   ├── inference/         # Inference modules
-│   └── utils/             # Config, loaders, explainer
-├── backend/               # FastAPI backend
-├── frontend/              # Next.js dashboard
-├── notebooks/             # Colab training notebooks
-└── trained_models/        # Saved model weights (.pth)
+│   ├── models/                 # PyTorch architectures
+│   │   ├── audio_autoencoder.py
+│   │   ├── vibration_classifier.py
+│   │   └── rul_predictor.py
+│   ├── inference/              # Inference modules
+│   │   ├── anomaly_detector.py
+│   │   ├── fault_diagnoser.py
+│   │   └── rul_estimator.py
+│   └── preprocessing/          # Data pipelines
+├── trained_models/             # Saved model weights (12 models)
+├── notebooks/                  # Google Colab training notebooks
+└── requirements.txt
 ```
 
 ---
 
-## 📥 Dataset Download Links
+## � Quick Start
 
-### 1. MIMII DUE (Audio Anomaly Detection)
-| Machine | Download |
-|---------|----------|
-| Fan | [Zenodo - MIMII DUE Fan](https://zenodo.org/record/4740355) |
-| Pump | [Zenodo - MIMII DUE Pump](https://zenodo.org/record/4740355) |
-| Valve | [Zenodo - MIMII DUE Valve](https://zenodo.org/record/4740355) |
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- Trained models in `trained_models/`
 
-**Structure after download:**
-```
-Data/
-├── fan/
-│   ├── train/         # Normal sounds only
-│   ├── source_test/   # Normal + Anomaly
-│   └── target_test/   # Domain shift test
-├── pump/
-└── valve/
-```
-
-### 2. CWRU Bearing (Vibration Fault Classification)
-**Download:** [CWRU Bearing Data Center](https://engineering.case.edu/bearingdatacenter/download-data-file)
-
-**Required files (48k Drive End):**
-- Normal: `97.mat`, `98.mat`, `99.mat`, `100.mat`
-- Ball Fault: `B007`, `B014`, `B021`
-- Inner Race: `IR007`, `IR014`, `IR021`  
-- Outer Race: `OR007`, `OR014`, `OR021`
-
-**Alternative:** [Kaggle - CWRU](https://www.kaggle.com/datasets/brjapon/cwru-bearing-datasets)
-
-### 3. NASA C-MAPSS (RUL Prediction)
-**Download:** [NASA Prognostics Data Repository](https://www.nasa.gov/content/prognostics-center-of-excellence-data-set-repository) or [Kaggle - C-MAPSS](https://www.kaggle.com/datasets/behrad3d/nasa-cmaps)
-
-**Files needed:**
-```
-Data/CMaps/
-├── train_FD001.txt, train_FD002.txt, train_FD003.txt, train_FD004.txt
-├── test_FD001.txt, test_FD002.txt, test_FD003.txt, test_FD004.txt
-└── RUL_FD001.txt, RUL_FD002.txt, RUL_FD003.txt, RUL_FD004.txt
-```
-
----
-
-## 🚀 Quick Start
-
-### 1. Install Dependencies
+### 1. Clone & Install Backend
 ```bash
+git clone https://github.com/yourusername/MaintanenceAI.git
+cd MaintanenceAI
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Download Data
-Download datasets from links above and place in `Data/` folder.
-
-### 3. Train Models (Google Colab)
-Upload notebooks from `notebooks/` to Colab:
-1. `01_Colab_Audio_Anomaly_Training.ipynb`
-2. `02_Colab_Vibration_Classifier_Training.ipynb`
-3. `03_Colab_RUL_Prediction_Training.ipynb`
-
-Save trained `.pth` files to `trained_models/`
-
-### 4. Start Backend
+### 2. Start Backend
 ```bash
-cd backend
-uvicorn main:app --reload
+source venv/bin/activate
+uvicorn backend.main:app --reload
 ```
-API: http://localhost:8000
+- API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+- WebSocket: ws://localhost:8000/ws/updates
 
-### 5. Start Frontend
+### 3. Start Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Dashboard: http://localhost:3000
+- Dashboard: http://localhost:3000
 
 ---
 
-## 📊 Model Performance
+## 📡 API Endpoints
 
-| Model | Dataset | Metric | Result |
-|-------|---------|--------|--------|
-| Audio Anomaly | MIMII | AUC | >0.75 |
-| Vibration Classifier | CWRU | Accuracy | ~98% |
-| RUL Transformer | C-MAPSS FD001 | RMSE | ~15 cycles |
-| RUL Transformer | C-MAPSS FD003 | RMSE | ~14 cycles |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/plant/summary` | GET | Overall plant health stats |
+| `/plant/machines` | GET | All machine statuses |
+| `/plant/machines/{id}` | GET | Single machine detail |
+| `/plant/areas` | GET | Plant area definitions |
+| `/plant/maintenance-queue` | GET | Prioritized maintenance tasks |
+| `/ws/updates` | WebSocket | Real-time machine updates |
 
 ---
 
-## Tech Stack
+## 📥 Dataset Downloads
 
-- **ML**: PyTorch, Transformer, LSTM, Autoencoder
-- **Backend**: FastAPI, Uvicorn, WebSocket
-- **Frontend**: Next.js, TypeScript, Tailwind CSS
-- **Audio**: librosa
-- **Data**: pandas, numpy, scipy, scikit-learn
+### 1. MIMII DUE (Audio Anomaly)
+[Zenodo - MIMII DUE](https://zenodo.org/record/4740355)
+
+### 2. CWRU Bearing (Vibration)
+[CWRU Bearing Data Center](https://engineering.case.edu/bearingdatacenter/download-data-file) or [Kaggle](https://www.kaggle.com/datasets/brjapon/cwru-bearing-datasets)
+
+### 3. NASA C-MAPSS (RUL)
+[NASA Prognostics Repository](https://www.nasa.gov/content/prognostics-center-of-excellence-data-set-repository) or [Kaggle](https://www.kaggle.com/datasets/behrad3d/nasa-cmaps)
+
+---
+
+## 🧠 Training Models
+
+Training notebooks in `notebooks/`:
+1. `01_Colab_Audio_Anomaly_Training.ipynb` - Ensemble anomaly detection
+2. `02_Colab_Vibration_Classifier_Training.ipynb` - 2D CNN fault classification
+3. `03_Colab_RUL_Prediction_Training.ipynb` - LSTM + Transformer RUL
+
+Save trained models to `trained_models/`
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|-------|--------------|
+| **ML/DL** | PyTorch, Transformer, LSTM, CNN, Autoencoder |
+| **Audio** | librosa, SciPy |
+| **Backend** | FastAPI, Uvicorn, WebSocket |
+| **Frontend** | Next.js 14, TypeScript, Tailwind CSS |
+| **Data** | pandas, numpy, scikit-learn |
+
+---
+
+## � Screenshots
+
+### Dashboard Overview
+- Real-time plant health statistics
+- Critical/warning alerts banner
+- Area-based machine grouping
+- WebSocket connection indicator
+
+### Area Pages
+- Area-specific health metrics
+- Machine cards sorted by health
+- Maintenance queue for area
+
+### Machine Detail
+- Circular health gauge
+- Anomaly score, RUL, fault type
+- AI-generated recommendations
+
+---
+
+## 📝 License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## 👤 Author
+
+Built as a demonstration of industrial AI predictive maintenance capabilities.

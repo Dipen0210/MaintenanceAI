@@ -14,6 +14,7 @@ class MachineStatus:
     """Status of a single machine."""
     machine_id: str
     machine_type: str  # 'fan', 'pump', 'valve', 'bearing'
+    area: str = "unknown"  # Plant area/zone
     anomaly_score: float = 0.0
     fault_type: Optional[str] = None
     fault_confidence: float = 0.0
@@ -25,6 +26,7 @@ class MachineStatus:
         return {
             'machine_id': self.machine_id,
             'machine_type': self.machine_type,
+            'area': self.area,
             'anomaly_score': self.anomaly_score,
             'fault_type': self.fault_type,
             'fault_confidence': self.fault_confidence,
@@ -66,6 +68,7 @@ class PlantIntelligence:
         self,
         machine_id: str,
         machine_type: str,
+        area: str = "unknown",
         anomaly_score: float = 0.0,
         fault_type: Optional[str] = None,
         fault_confidence: float = 0.0,
@@ -80,6 +83,7 @@ class PlantIntelligence:
         status = MachineStatus(
             machine_id=machine_id,
             machine_type=machine_type,
+            area=area,
             anomaly_score=anomaly_score,
             fault_type=fault_type,
             fault_confidence=fault_confidence,

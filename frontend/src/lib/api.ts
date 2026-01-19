@@ -16,12 +16,19 @@ export interface PlantSummary {
 export interface MachineStatus {
   machine_id: string;
   machine_type: string;
+  area: string;
   anomaly_score: number;
   fault_type: string | null;
   fault_confidence: number;
   rul_cycles: number | null;
   health_score: number;
   last_updated: string;
+}
+
+export interface PlantArea {
+  name: string;
+  icon: string;
+  description: string;
 }
 
 export interface MaintenanceRecommendation {
@@ -92,6 +99,10 @@ class ApiClient {
 
   async getMaintenanceQueue(): Promise<MaintenanceRecommendation[]> {
     return this.fetch<MaintenanceRecommendation[]>('/plant/maintenance-queue');
+  }
+
+  async getAreas(): Promise<Record<string, PlantArea>> {
+    return this.fetch<Record<string, PlantArea>>('/plant/areas');
   }
 
   // Prediction endpoints
