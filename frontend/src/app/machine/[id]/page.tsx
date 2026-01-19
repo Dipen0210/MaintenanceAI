@@ -12,6 +12,9 @@ const getDemoMachine = (id: string): MachineStatus => ({
     machine_type: id.toLowerCase().includes('fan') ? 'fan' :
         id.toLowerCase().includes('pump') ? 'pump' :
             id.toLowerCase().includes('valve') ? 'valve' : 'bearing',
+    area: id.toLowerCase().includes('fan') ? 'cooling' :
+        id.toLowerCase().includes('pump') ? 'hydraulics' :
+            id.toLowerCase().includes('valve') ? 'flow_control' : 'bearings',
     anomaly_score: 0.15,
     fault_type: 'Ball_014',
     fault_confidence: 0.85,
