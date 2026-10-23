@@ -61,6 +61,10 @@ export interface AudioPrediction {
   label: string;
 }
 
+export class ApiError extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -78,7 +82,7 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      throw new ApiError(response.status, `API Error: ${response.status} ${response.statusText}`);
     }
 
     return response.json();

@@ -1,0 +1,15 @@
+{
+  "version": "risk-scenarios-v1",
+  "scope": "Authored synthetic software scenarios, not expert-certified industrial outcomes. Model fields are explicit test fixtures; actual trained inference is covered separately.",
+  "cases": [
+    {"id":"critical-heat","temperature":110,"vibration":3,"current":15,"criticality":[5,4,4,4],"anomaly":0.3,"expected":"Critical review required","reason":"Safety-critical asset exceeds its approved temperature limit."},
+    {"id":"production-bottleneck","temperature":78,"vibration":7.2,"current":28,"criticality":[4,5,4,4],"anomaly":0.97,"expected":"High priority","reason":"Compatible degradation evidence on a production bottleneck requires early review."},
+    {"id":"ancillary-nuisance","temperature":45,"vibration":2,"current":10,"criticality":[1,1,1,1],"anomaly":1.0,"expected":"Planned maintenance","reason":"Strong anomaly on low-consequence ancillary equipment still needs inspection, behind safety-critical and bottleneck work."},
+    {"id":"healthy-critical","temperature":45,"vibration":1,"current":10,"criticality":[5,5,5,5],"anomaly":0.2,"expected":"Monitor","reason":"Criticality alone does not establish degradation or authorize continued operation."},
+    {"id":"missing-temperature","temperature":45,"vibration":1,"current":10,"criticality":[4,3,3,3],"anomaly":0.2,"missing":["temperature"],"expected":"Insufficient evidence","reason":"A required channel is absent even though other observations appear normal."},
+    {"id":"stale-sensors","temperature":45,"vibration":1,"current":10,"criticality":[2,2,2,2],"anomaly":0.2,"missing":["temperature","vibration_rms","current"],"expected":"Insufficient evidence","reason":"Stale critical observations cannot justify a low-risk assessment."},
+    {"id":"conflicting-normal-model","temperature":110,"vibration":1,"current":10,"criticality":[4,4,4,4],"anomaly":0.0,"expected":"Critical review required","reason":"A model reporting normal cannot cancel a safety-critical observed limit excursion."},
+    {"id":"moderate-telemetry-only","temperature":75,"vibration":7,"current":28,"criticality":[2,3,2,2],"anomaly":null,"expected":"Planned maintenance","reason":"Verified moderate limit excursions justify planned review without inventing a model result."}
+  ],
+  "ranking_group": {"arrival_order":["ancillary-nuisance","production-bottleneck","critical-heat"],"expected_order":["critical-heat","production-bottleneck","ancillary-nuisance"]}
+}

@@ -1,0 +1,13 @@
+CREATE TABLE plants(id TEXT PRIMARY KEY, name TEXT NOT NULL, mode TEXT NOT NULL);
+CREATE TABLE assets(id TEXT PRIMARY KEY, plant_id TEXT NOT NULL REFERENCES plants(id), name TEXT NOT NULL, equipment_type TEXT NOT NULL, area TEXT NOT NULL, operating_state TEXT NOT NULL, safety_criticality INTEGER NOT NULL DEFAULT 1, production_criticality INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE sources(id TEXT PRIMARY KEY, plant_id TEXT NOT NULL REFERENCES plants(id), name TEXT NOT NULL, kind TEXT NOT NULL, read_only INTEGER NOT NULL CHECK(read_only=1), status TEXT NOT NULL, last_received TEXT);
+CREATE TABLE sensors(id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES assets(id), tag_id TEXT NOT NULL, unit TEXT NOT NULL, lower_bound REAL NOT NULL, upper_bound REAL NOT NULL, stale_after_seconds INTEGER NOT NULL, source_id TEXT NOT NULL REFERENCES sources(id), UNIQUE(asset_id,tag_id));
+CREATE TABLE users(id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, role TEXT NOT NULL, plant_id TEXT NOT NULL REFERENCES plants(id), enabled INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE asset_grants(user_id TEXT NOT NULL REFERENCES users(id), asset_id TEXT NOT NULL REFERENCES assets(id), PRIMARY KEY(user_id,asset_id));
+CREATE TABLE source_grants(user_id TEXT NOT NULL REFERENCES users(id), source_id TEXT NOT NULL REFERENCES sources(id), PRIMARY KEY(user_id,source_id));
+CREATE TABLE sessions(token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), expires_at TEXT NOT NULL);
+CREATE TABLE telemetry(id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES assets(id), tag_id TEXT NOT NULL, timestamp_utc TEXT NOT NULL, value REAL NOT NULL, unit TEXT NOT NULL, quality TEXT NOT NULL, source TEXT NOT NULL REFERENCES sources(id), operating_state TEXT NOT NULL, ingestion_timestamp TEXT NOT NULL, UNIQUE(asset_id,tag_id,timestamp_utc));
+CREATE INDEX telemetry_asset_time ON telemetry(asset_id,timestamp_utc);
+CREATE TABLE ingestion_events(id TEXT PRIMARY KEY, plant_id TEXT NOT NULL REFERENCES plants(id), asset_id TEXT, tag_id TEXT, source_id TEXT NOT NULL REFERENCES sources(id), timestamp_utc TEXT NOT NULL, status TEXT NOT NULL, reason TEXT NOT NULL);
+CREATE TABLE alarms(id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES assets(id), severity TEXT NOT NULL, source TEXT NOT NULL, state TEXT NOT NULL, timestamp_utc TEXT NOT NULL, message TEXT NOT NULL);
+CREATE TABLE audit_events(id TEXT PRIMARY KEY, actor_id TEXT, plant_id TEXT, action TEXT NOT NULL, resource TEXT NOT NULL, timestamp_utc TEXT NOT NULL, outcome TEXT NOT NULL);

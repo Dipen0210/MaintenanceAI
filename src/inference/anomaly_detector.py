@@ -1,45 +1,25 @@
-"""
-Audio Anomaly Detection Inference Module.
-Loads trained ensemble model and computes anomaly scores from audio files.
-"""
-
-import torch
-import numpy as np
-import librosa
+"""Versioned, fitted MIMII audio anomaly inference. No heuristic fallback."""
 import joblib
+import librosa
+import numpy as np
 from pathlib import Path
-from typing import Tuple, Optional
+from sklearn.utils.validation import check_is_fitted
+
+FEATURE_VERSION = "whole_file_logmel_mfcc_v1"
 
 
-class AudioAnomalyDetector:
-    """Detects anomalies in machine audio using ensemble scoring."""
-    
-    def __init__(
-        self,
-        model_path: str,
-        device: Optional[str] = None,
-        threshold: float = 0.5,
-        sample_rate: int = 16000
-    ):
-        """
-        Args:
-            model_path: Path to trained .pkl file
-            device: 'cuda' or 'cpu' (auto-detect if None)
-            threshold: Anomaly threshold (scores above = anomaly)
-            sample_rate: Audio sample rate
-        """
-        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        self.threshold = threshold
-        self.sample_rate = sample_rate
-        
-        # Load model
-        self.model_data = joblib.load(model_path)
-        print(f"Loaded audio model from {model_path}")
-        
+class AudioFeatures:
+    sample_rate = 16000
+
     def extract_features(self, audio_path: str) -> np.ndarray:
         """Extract features from audio file."""
         # Load audio
-        y, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
+        try:
+            y, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
+        except Exception as exc:
+            raise ValueError("Cannot decode audio") from exc
+        if len(y) < self.sample_rate or len(y) > 60 * self.sample_rate or not np.isfinite(y).all():
+            raise ValueError("Audio must contain 1–60 seconds of finite samples")
         
         features = []
         
@@ -83,41 +63,40 @@ class AudioAnomalyDetector:
         # Flatten and concatenate
         return np.concatenate([np.array(f).flatten() for f in features])
     
-    def compute_anomaly_score(self, audio_path: str) -> float:
-        """
-        Compute anomaly score for an audio file.
-        Returns a normalized score between 0 and 1.
-        """
-        # For the PKL model, we return a placeholder score
-        # The actual scoring would depend on the exact model structure saved
-        try:
-            features = self.extract_features(audio_path)
-            # Simple heuristic: use feature variance as proxy for anomaly
-            score = np.std(features) / (np.mean(np.abs(features)) + 1e-8)
-            # Normalize to 0-1 range
-            score = min(1.0, max(0.0, score / 2.0))
-            return score
-        except Exception as e:
-            print(f"Error processing {audio_path}: {e}")
-            return 0.5
-    
-    def predict(self, audio_path: str) -> Tuple[bool, float, str]:
-        """
-        Predict if audio is anomalous.
-        
-        Returns:
-            Tuple of (is_anomaly, score, label)
-        """
-        score = self.compute_anomaly_score(audio_path)
+
+class AudioAnomalyDetector(AudioFeatures):
+    def __init__(self, model_path: str, device=None, threshold=None, sample_rate=16000):
+        self.model_data = joblib.load(model_path)
+        if self.model_data.get('format') != 'mimii_iforest_v1':
+            raise ValueError("Not a fitted audio artifact; legacy metrics files cannot perform inference")
+        if self.model_data.get('feature_version') != FEATURE_VERSION or sample_rate != 16000:
+            raise ValueError("Incompatible audio preprocessing")
+        self.sample_rate = sample_rate
+        self.threshold = float(self.model_data['threshold'] if threshold is None else threshold)
+        if not 0 <= self.threshold <= 1:
+            raise ValueError("Invalid threshold")
+        for entry in self.model_data['sections'].values():
+            check_is_fitted(entry['pipeline'].named_steps['detector'])
+            if len(entry['calibration_scores']) < 20:
+                raise ValueError("Missing held-out normal calibration scores")
+
+    def compute_anomaly_score(self, audio_path: str, section: str = '00') -> float:
+        if section not in self.model_data['sections']:
+            raise ValueError("Unsupported machine section")
+        entry = self.model_data['sections'][section]
+        features = self.extract_features(audio_path)
+        if not np.isfinite(features).all():
+            raise ValueError("Non-finite audio features")
+        raw_score = -entry['pipeline'].score_samples(features.reshape(1, -1))[0]
+        reference = np.asarray(entry['calibration_scores'])
+        # Empirical normal-score percentile, NOT a fault probability.
+        return float(np.searchsorted(reference, raw_score, side='right') / len(reference))
+
+    def predict(self, audio_path: str, section: str = '00'):
+        score = self.compute_anomaly_score(audio_path, section)
         is_anomaly = score > self.threshold
-        label = "ANOMALY" if is_anomaly else "NORMAL"
-        
-        return is_anomaly, score, label
+        return is_anomaly, score, 'ANOMALY' if is_anomaly else 'NORMAL'
 
 
-def load_audio_detector(
-    model_path: str,
-    threshold: float = 0.5
-) -> AudioAnomalyDetector:
-    """Convenience function to load an audio anomaly detector."""
+def load_audio_detector(model_path: str, threshold=None):
     return AudioAnomalyDetector(model_path=model_path, threshold=threshold)

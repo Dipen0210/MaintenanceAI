@@ -1,0 +1,92 @@
+[
+  {
+    "id": "conveyor-synthetic-64-1cd3c49227d0",
+    "family": "conveyor-synthetic",
+    "version": "1cd3c49227d0",
+    "kind": "condition",
+    "filename": "synthetic_conveyor_64.joblib",
+    "sha256": "1cd3c49227d0867e816e808067ae81f2679fb0e64b10c029143925d7b5bf540f",
+    "dataset_id": "synthetic-conveyor-v1",
+    "preprocessing_version": "conveyor-spectrum-v1",
+    "equipment_types": [
+      "conveyor_motor"
+    ],
+    "operating_states": [
+      "running"
+    ],
+    "sample_rate": 4096,
+    "input_kind": "vibration",
+    "mode": "simulation",
+    "metrics": {
+      "trees": 64,
+      "validation_accuracy": 1.0,
+      "test_accuracy": 1.0,
+      "test_anomaly_auc": 0.9993375,
+      "confusion_matrix": [
+        [
+          200,
+          0,
+          0
+        ],
+        [
+          0,
+          200,
+          0
+        ],
+        [
+          0,
+          0,
+          200
+        ]
+      ]
+    },
+    "uncertainty": "Class scores are uncalibrated; no validated uncertainty interval.",
+    "limitations": "Synthetic training and evaluation only. Not validated for physical motors or conveyor assets.",
+    "active": true
+  },
+  {
+    "id": "conveyor-synthetic-128-ecc0340dafd5",
+    "family": "conveyor-synthetic",
+    "version": "ecc0340dafd5",
+    "kind": "condition",
+    "filename": "synthetic_conveyor_128.joblib",
+    "sha256": "ecc0340dafd54c4578b0361910aff66c241d090d02d0d78b5ae1420c37b7358a",
+    "dataset_id": "synthetic-conveyor-v1",
+    "preprocessing_version": "conveyor-spectrum-v1",
+    "equipment_types": [
+      "conveyor_motor"
+    ],
+    "operating_states": [
+      "running"
+    ],
+    "sample_rate": 4096,
+    "input_kind": "vibration",
+    "mode": "simulation",
+    "metrics": {
+      "trees": 128,
+      "validation_accuracy": 1.0,
+      "test_accuracy": 1.0,
+      "test_anomaly_auc": 0.9995875,
+      "confusion_matrix": [
+        [
+          200,
+          0,
+          0
+        ],
+        [
+          0,
+          200,
+          0
+        ],
+        [
+          0,
+          0,
+          200
+        ]
+      ]
+    },
+    "uncertainty": "Class scores are uncalibrated; no validated uncertainty interval.",
+    "limitations": "Synthetic training and evaluation only. Not validated for physical motors or conveyor assets.",
+    "active": false
+  }
+]

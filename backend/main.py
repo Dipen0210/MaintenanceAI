@@ -1,9 +1,10 @@
 """
 FastAPI Main Application.
-Predictive Maintenance System Backend - Uses ALL trained models for predictions.
+Predictive Maintenance System Backend - Separates verified inference from explicitly simulated plant observations.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
+from pydantic import ValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
@@ -15,6 +16,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from backend.schemas import MachineInput
 from backend.routes import predict_router, websocket_router
 from backend.services.plant_intelligence import PlantIntelligence
 from backend.services.sample_data import SAMPLE_MACHINES, PLANT_AREAS
@@ -29,9 +31,9 @@ MODEL_DIR = Path(__file__).parent.parent / "trained_models"
 # Model paths
 VIBRATION_MODEL_PATH = MODEL_DIR / "vibration_classifier.pth"
 AUDIO_MODEL_PATHS = {
-    "fan": MODEL_DIR / "audio_advanced_v2_fan.pkl",
-    "pump": MODEL_DIR / "audio_advanced_v2_pump.pkl",
-    "valve": MODEL_DIR / "audio_advanced_v2_valve.pkl",
+    "fan": MODEL_DIR / "audio_iforest_v1_fan.joblib",
+    "pump": MODEL_DIR / "audio_iforest_v1_pump.joblib",
+    "valve": MODEL_DIR / "audio_iforest_v1_valve.joblib",
 }
 RUL_MODEL_PATHS = {
     "lstm": {
@@ -76,8 +78,8 @@ def load_models():
     for machine_type, path in AUDIO_MODEL_PATHS.items():
         try:
             if path.exists():
-                import joblib
-                audio_models[machine_type] = joblib.load(path)
+                from src.inference.anomaly_detector import AudioAnomalyDetector
+                audio_models[machine_type] = AudioAnomalyDetector(str(path))
                 print(f"  ✅ Audio model loaded: {machine_type}")
             else:
                 print(f"  ⚠️ Audio model not found: {machine_type}")
@@ -106,211 +108,33 @@ def load_models():
     print(f"📊 Total models loaded: {total_loaded}/12")
 
 
-def generate_synthetic_vibration_signal(force_normal: bool = False):
-    """Generate synthetic vibration signal (32x32 spectrogram for 2D model)."""
-    # Generate "normal" pattern - clean spectrogram
-    base = np.random.randn(32, 32) * 0.3
-    
-    # Only 15% chance of fault pattern (unless forced normal)
-    if not force_normal and random.random() < 0.15:
-        fault_type = random.choice(['ball', 'inner', 'outer'])
-        severity = random.choice([7, 14, 21])
-        
-        if fault_type == 'ball':
-            row_start = 10 + (severity // 7)
-            base[row_start:row_start+4, :] += np.random.randn(4, 32) * (severity / 7)
-        elif fault_type == 'inner':
-            row_start = 5 + (severity // 7)
-            base[row_start:row_start+4, :] += np.random.randn(4, 32) * (severity / 6)
-        else:  # outer
-            row_start = 20 + (severity // 7)
-            base[row_start:row_start+4, :] += np.random.randn(4, 32) * (severity / 7)
-    
-    return base.astype(np.float32)
-
-
-def generate_synthetic_sensor_sequence(degradation_level: float = None):
-    """Generate synthetic sensor sequence for RUL prediction."""
-    seq_length = 50
-    n_features = 17
-    
-    # Base sensor readings (normalized)
-    sequence = np.random.randn(seq_length, n_features) * 0.2
-    
-    # Degradation level: bias towards healthy (0-0.3 = 70%, 0.3-0.6 = 20%, 0.6-1.0 = 10%)
-    if degradation_level is None:
-        r = random.random()
-        if r < 0.70:  # 70% healthy
-            degradation_level = random.uniform(0, 0.25)
-        elif r < 0.90:  # 20% warning
-            degradation_level = random.uniform(0.25, 0.5)
-        else:  # 10% critical
-            degradation_level = random.uniform(0.5, 0.9)
-    
-    # Add mild degradation trends (smaller impact)
-    trend = np.linspace(0, degradation_level * 0.5, seq_length).reshape(-1, 1)
-    sequence[:, :3] += trend  # Only first 3 sensors
-    
-    return sequence.astype(np.float32)
-
-
-def generate_synthetic_audio_features(machine_type: str, is_anomaly: bool = None):
-    """Generate synthetic audio features for anomaly detection."""
-    # Generate feature vector similar to what audio model expects
-    n_features = 400  # Approximate feature size
-    features = np.random.randn(n_features) * 0.3
-    
-    if is_anomaly is None:
-        is_anomaly = random.random() < 0.2  # 20% anomaly rate
-    
-    if is_anomaly:
-        # Add anomaly patterns
-        features[50:100] += np.random.randn(50) * 1.5
-        features[200:250] += np.random.randn(50) * 1.2
-    
-    return features.astype(np.float32), is_anomaly
-
-
-def get_anomaly_score_from_audio(machine_type: str) -> float:
-    """Get anomaly score using audio model."""
-    if machine_type in audio_models:
-        try:
-            model_data = audio_models[machine_type]
-            features, is_anomaly = generate_synthetic_audio_features(machine_type)
-            
-            # Simple scoring based on feature variance
-            score = np.std(features) / (np.mean(np.abs(features)) + 1e-8)
-            score = min(1.0, max(0.0, score / 3.0))
-            
-            # Bias towards anomaly if generated as such
-            if is_anomaly:
-                score = max(score, random.uniform(0.15, 0.4))
-            else:
-                score = min(score, random.uniform(0.02, 0.1))
-            
-            return round(score, 3)
-        except Exception as e:
-            pass
-    
-    # Fallback
-    return round(random.uniform(0.01, 0.08), 3)
-
-
-def get_ensemble_rul_prediction() -> float:
-    """Get RUL prediction using ensemble of all RUL models."""
-    predictions = []
-    
-    # Generate sequence with biased degradation (mostly healthy)
-    sequence = generate_synthetic_sensor_sequence()
-    
-    for model_name, model in rul_models.items():
-        try:
-            result = model.predict(sequence)
-            predictions.append(result['rul_cycles'])
-        except Exception as e:
-            pass
-    
-    if predictions:
-        # Ensemble: average of all predictions
-        avg_rul = np.mean(predictions)
-        # Clamp to reasonable range and add variance
-        avg_rul = max(20, min(130, avg_rul + random.uniform(-5, 5)))
-        return round(avg_rul, 1)
-    
-    # Fallback with healthy bias
-    r = random.random()
-    if r < 0.70:
-        return round(random.uniform(90, 130), 1)  # Healthy
-    elif r < 0.90:
-        return round(random.uniform(50, 90), 1)   # Warning
-    else:
-        return round(random.uniform(20, 50), 1)   # Critical
-
-
 def get_model_predictions(machine_type: str):
-    """Get predictions from ALL trained models for a machine."""
-    
-    # Determine machine health profile (realistic distribution)
-    # 70% healthy, 20% warning, 10% critical
-    health_roll = random.random()
-    is_healthy = health_roll < 0.70
-    is_warning = 0.70 <= health_roll < 0.90
-    is_critical = health_roll >= 0.90
-    
-    # 1. Vibration Fault Detection
-    fault_type = "Normal"
-    fault_confidence = 0.95
-    
-    if fault_diagnoser:
-        try:
-            # Force normal signal for healthy machines
-            signal = generate_synthetic_vibration_signal(force_normal=is_healthy)
-            result = fault_diagnoser.predict(signal)
-            
-            # For healthy machines, override fault detection
-            if is_healthy:
-                fault_type = "Normal"
-                fault_confidence = random.uniform(0.92, 0.99)
-            else:
-                fault_type = result['fault_type']
-                fault_confidence = result['confidence']
-        except Exception as e:
-            pass
-    
-    # 2. Audio Anomaly Detection
-    if is_healthy:
-        anomaly_score = random.uniform(0.01, 0.08)
-    elif is_warning:
-        anomaly_score = random.uniform(0.08, 0.18)
-    else:  # critical
-        anomaly_score = random.uniform(0.18, 0.40)
-    
-    # 3. RUL Prediction (ensemble)
-    if is_healthy:
-        # High RUL for healthy machines
-        rul_cycles = random.uniform(90, 130)
-    elif is_warning:
-        rul_cycles = random.uniform(50, 90)
-    else:  # critical
-        rul_cycles = random.uniform(15, 50)
-    
-    # Still try to get model prediction for healthy/warning
-    if rul_models and not is_critical:
-        try:
-            sequence = generate_synthetic_sensor_sequence(
-                degradation_level=0.1 if is_healthy else 0.4
-            )
-            predictions = []
-            for model in rul_models.values():
-                try:
-                    result = model.predict(sequence)
-                    predictions.append(result['rul_cycles'])
-                except:
-                    pass
-            if predictions:
-                model_rul = np.mean(predictions)
-                # Blend model prediction with target range
-                if is_healthy:
-                    rul_cycles = max(80, min(130, model_rul * 1.2))
-                else:
-                    rul_cycles = max(50, min(90, model_rul))
-        except:
-            pass
-    
-    return {
-        "anomaly_score": float(round(anomaly_score, 3)),
-        "fault_type": fault_type,
-        "fault_confidence": float(round(fault_confidence, 2)),
-        "rul_cycles": float(round(rul_cycles, 1))
-    }
+    """Legacy dashboard simulation only; never apply turbofan RUL to plant assets.
+
+    Real learned predictions are available through the /predict routes. These
+    generated health observations are deliberately isolated from inference.
+    """
+    level = random.random()
+    if level < .7:
+        anomaly, rul, fault = random.uniform(.01, .08), random.uniform(90, 130), 'Normal'
+    elif level < .9:
+        anomaly, rul = random.uniform(.08, .18), random.uniform(50, 90)
+        fault = random.choice(['Normal', 'Ball_007', 'IR_007'])
+    else:
+        anomaly, rul = random.uniform(.18, .4), random.uniform(15, 50)
+        fault = random.choice(['Ball_021', 'IR_021', 'OR_021'])
+    return dict(anomaly_score=round(anomaly, 3), fault_type=fault,
+                fault_confidence=round(random.uniform(.8, .99), 2), rul_cycles=round(rul, 1))
 
 
 async def simulate_machine_updates():
-    """Background task to simulate machine updates using ALL models with WebSocket broadcast."""
+    """Background task to broadcast explicitly simulated machine observations."""
     from backend.routes.websocket import broadcast_machine_update, broadcast_plant_summary, broadcast_alert
     
     while True:
         await asyncio.sleep(10)  # Update every 10 seconds
+        from backend.core.demo import simulate_tick
+        await asyncio.to_thread(simulate_tick)
         
         # Update 2-4 random machines
         num_updates = random.randint(2, 4)
@@ -352,8 +176,8 @@ async def simulate_machine_updates():
 
 
 def initialize_sample_machines():
-    """Initialize all sample machines with predictions from ALL models."""
-    print("📦 Initializing machines with ALL model predictions...")
+    """Initialize explicitly simulated plant observations."""
+    print("📦 Initializing simulated machines (not model predictions)...")
     
     for machine in SAMPLE_MACHINES:
         predictions = get_model_predictions(machine["machine_type"])
@@ -379,7 +203,23 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting Predictive Maintenance API...")
     print("=" * 50)
     
-    # Load ALL trained models
+    from backend.core.database import migrate
+    from backend.core.demo import seed_demo
+    migrate()
+    seed_demo()
+    from backend.ml.registry import initialize_registry
+    initialize_registry()
+    from backend.risk.service import seed_risk
+    seed_risk()
+    from backend.scheduling.demo import seed_planning
+    seed_planning()
+    from backend.copilot.demo import seed_copilot
+    try:
+        seed_copilot()
+    except (ImportError,OSError,ValueError,RuntimeError,HTTPException) as exc:
+        print('Copilot demo evidence unavailable:',type(exc).__name__)
+
+    # Load verified public-dataset models.
     load_models()
     
     print("=" * 50)
@@ -395,6 +235,10 @@ async def lifespan(app: FastAPI):
     
     if simulation_task:
         simulation_task.cancel()
+        try:
+            await simulation_task
+        except asyncio.CancelledError:
+            pass
     print("👋 Shutting down...")
 
 
@@ -404,6 +248,19 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Validation errors must not echo NaN/Inf back into JSON serialization.
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+
+@app.exception_handler(RequestValidationError)
+async def invalid_request(request, exc):
+    return JSONResponse(status_code=422, content={"detail": [
+        {"loc": list(error['loc']), "msg": error['msg'], "type": error['type']}
+        for error in exc.errors()
+    ]})
+
 
 # CORS middleware
 app.add_middleware(
@@ -417,13 +274,28 @@ app.add_middleware(
 # Include routers
 app.include_router(predict_router)
 app.include_router(websocket_router)
+from backend.routes.v2 import router as v2_router
+app.include_router(v2_router)
+from backend.routes.ml import router as ml_router
+app.include_router(ml_router)
+from backend.routes.risk import router as risk_router
+app.include_router(risk_router)
+from backend.routes.copilot import router as copilot_router
+app.include_router(copilot_router)
+from backend.routes.observability import router as observability_router
+app.include_router(observability_router)
+from backend.routes.scheduling import router as scheduling_router
+app.include_router(scheduling_router)
+from backend.routes.administration import router as administration_router
+app.include_router(administration_router)
 
 
 # Endpoints
 @app.get("/")
 async def root():
     return {
-        "status": "healthy",
+        "status": "healthy" if fault_diagnoser and len(audio_models) == 3 and len(rul_models) == 8 else "degraded",
+        "plant_data_mode": "simulation",
         "service": "Predictive Maintenance API",
         "models_loaded": {
             "vibration_classifier": fault_diagnoser is not None,
@@ -453,7 +325,7 @@ async def get_all_machines():
 async def get_machine(machine_id: str):
     machine = plant_intel.get_machine(machine_id)
     if machine is None:
-        return {"error": "Machine not found"}
+        raise HTTPException(status_code=404, detail="Machine not found")
     return machine
 
 
@@ -466,28 +338,35 @@ async def get_maintenance_queue():
 @app.post("/plant/machines/{machine_id}/update")
 async def update_machine(
     machine_id: str,
-    machine_type: str,
-    area: str = "unknown",
-    anomaly_score: float = 0.0,
-    fault_type: str = None,
-    fault_confidence: float = 0.0,
-    rul_cycles: float = None
+    machine_type: str | None = None,
+    area: str | None = None,
+    anomaly_score: float | None = Query(None, ge=0, le=1, allow_inf_nan=False),
+    fault_type: str | None = None,
+    fault_confidence: float | None = Query(None, ge=0, le=1, allow_inf_nan=False),
+    rul_cycles: float | None = Query(None, ge=0, le=1000000, allow_inf_nan=False),
 ):
-    status = plant_intel.update_machine(
-        machine_id=machine_id,
-        machine_type=machine_type,
-        area=area,
-        anomaly_score=anomaly_score,
-        fault_type=fault_type,
-        fault_confidence=fault_confidence,
-        rul_cycles=rul_cycles
-    )
+    existing = plant_intel.get_machine(machine_id)
+    values = {k: v for k, v in (existing or {}).items() if k in MachineInput.model_fields}
+    values['machine_id'] = machine_id
+    updates = dict(machine_type=machine_type, area=area, anomaly_score=anomaly_score,
+                   fault_type=fault_type, fault_confidence=fault_confidence, rul_cycles=rul_cycles)
+    values.update({k: v for k, v in updates.items() if v is not None})
+    try:
+        validated = MachineInput.model_validate(values)
+    except ValidationError:
+        raise HTTPException(status_code=422, detail="Invalid machine fields")
+    status = plant_intel.update_machine(**validated.model_dump())
+    from backend.routes.websocket import broadcast_machine_update, broadcast_plant_summary
+    await broadcast_machine_update(status.to_dict())
+    await broadcast_plant_summary(plant_intel.get_plant_summary())
     return status.to_dict()
 
 
 @app.post("/plant/reset")
 async def reset_machines():
-    """Reset all machines with new predictions from all models."""
+    """Reset the explicitly simulated plant state."""
+    plant_intel.machines.clear()
+    plant_intel.history.clear()
     initialize_sample_machines()
     return {"status": "reset", "machines": len(SAMPLE_MACHINES)}
 
@@ -495,3 +374,11 @@ async def reset_machines():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+from backend.routes.simulation import router as simulation_router
+from backend.routes.machines import router as machines_router
+app.include_router(simulation_router)
+app.include_router(machines_router)
+
+from backend.routes.visuals import router as visuals_router
+app.include_router(visuals_router)

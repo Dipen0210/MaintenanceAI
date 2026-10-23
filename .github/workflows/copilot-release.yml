@@ -1,0 +1,38 @@
+name: Verified copilot release gate
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Measure first; after a real review, check the preserved report for release
+        type: choice
+        options: [measure, release]
+        default: measure
+        required: true
+permissions:
+  contents: read
+jobs:
+  measured-release:
+    # A controlled runner must already hold legitimate datasets/verified model artifacts.
+    # Missing artifacts are failures. Never run untrusted pull-request code on this runner.
+    runs-on: [self-hosted, maintenanceai-evaluation]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+      - name: Actual backend integration and inference tests
+        run: venv/bin/python -m pytest -q
+      - name: Measure all retrieval configurations
+        if: inputs.stage == 'measure'
+        run: venv/bin/python -m scripts.evaluate_copilot
+      - name: Verify deliberately injected regressions are rejected
+        run: venv/bin/python -m scripts.verify_copilot_release_regressions
+      - name: Require concrete expert-reviewed examples before release
+        if: inputs.stage == 'release'
+        # This intentionally blocks until an expert review for this exact measured run exists.
+        # No automatic deployment follows this workflow.
+        run: venv/bin/python -m scripts.check_copilot_release docs/evaluation/copilot-evaluation-tools_rag.json --review docs/evaluation/copilot-expert-review.json --output docs/evaluation/copilot-release-gate.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: copilot-release-evidence
+          path: docs/evaluation/copilot-*.json

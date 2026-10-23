@@ -1,0 +1,11 @@
+import Link from 'next/link';
+import {Asset} from '@/lib/operations';
+import Icon from './Icon';
+export function ConditionBadge({asset}:{asset:Asset}){
+ const color=asset.condition==='normal'?'badge-teal':asset.condition==='critical'?'badge-red':asset.condition==='warning'?'badge-amber':'badge-muted';
+ return <span className={`badge ${color}`} title={asset.condition_detail}>{asset.condition_label||'Awaiting readings'}</span>;
+}
+export default function MachineCondition({assets,unavailable=false}:{assets:Asset[];unavailable?:boolean}){
+ const order:Record<string,number>={critical:0,warning:1,unknown:2,normal:3};const rows=[...assets].sort((a,b)=>(order[a.condition||'unknown']??2)-(order[b.condition||'unknown']??2));
+ return <section className="surface condition-overview" aria-label="Machine condition overview"><div className="section-heading"><div><h2>Machine condition</h2><p>Live sensor readings against configured limits. Investigate alerts before deciding a machine has failed.</p></div><Link href="/operations/assets">All machines <Icon name="arrow" size={16}/></Link></div><div className="condition-counts">{[['normal','Within limits'],['warning','Warning'],['critical','Critical'],['unknown','Needs verification']].map(([key,label])=><div key={key} className={`condition-count ${key}`}><strong>{unavailable?'—':assets.filter(a=>(a.condition||'unknown')===key).length}</strong><span>{label}</span></div>)}</div>{unavailable?<p className="empty-state">Machine condition is unavailable. Retry workspace data above.</p>:<div className="machine-condition-grid">{rows.slice(0,6).map(a=><Link className="machine-condition-card" href={`/operations/assets/${encodeURIComponent(a.id)}`} key={a.id}><div><Icon name="assets" size={20}/><span className="badge badge-muted">{a.data_mode}</span></div><h3>{a.name}</h3><ConditionBadge asset={a}/><p>{a.condition_detail}</p><small>{a.last_observed?`Last reading ${new Date(a.last_observed).toLocaleTimeString()}`:'Waiting for first sensor reading'} · Recorded state: {a.operating_state}</small></Link>)}</div>}{!unavailable&&!assets.length&&<p className="empty-state">Add a machine or ask your administrator for equipment access.</p>}<div className="surface-foot"><span>Demo readings update every 10 seconds while simulation runs.</span><span>Source quality and machine condition are separate.</span></div></section>;
+}

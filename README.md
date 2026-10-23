@@ -1,305 +1,202 @@
-# MaintenanceAI: Multimodal Equipment Health Monitoring
+# MaintenanceAI
 
-An end-to-end AI-powered predictive maintenance system using **audio, vibration, and sensor data** for industrial machine health monitoring. Features CNN-based fault diagnosis, LSTM/Transformer RUL prediction, a simulated plant dashboard, and optional direct inference APIs.
+MaintenanceAI V2 is a locally verified FastAPI and Next.js maintenance demonstration integrating predictive ML, industrial data ingestion, risk prioritization, grounded Engineer Copilot, LLMOps/MLOps and manager-approved scheduling. See the [documentation index](docs/README.md), [repository layout](docs/PROJECT_STRUCTURE.md) and [local setup guide](docs/deployment/LOCAL_DEMO.md).
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
+The dashboard uses **simulated equipment conditions**. It is not connected to SCADA, and no real-plant deployment or reliability benefit is claimed. Direct inference is separate from the simulation.
 
----
+[Reference benchmarks and reproduction instructions](docs/evaluation/README.md) describe the measured results and their limitations.
 
-## Key Features
+## Local setup
 
-| Feature | Description |
-|---------|-------------|
-| Audio Anomaly Detection | Ensemble ML on MIMII dataset (fan, pump, valve) |
-| Vibration Fault Diagnosis | 2D CNN classifier, 10 bearing fault classes (~98% accuracy) |
-| RUL Prediction | LSTM + Transformer ensemble on NASA C-MAPSS (RMSE ~14–15) |
-| Plant Intelligence | Multi-machine health scoring and risk-based maintenance queue |
-| Simulated Live Plant | 14 sample machines across 4 areas, updated every 10 seconds |
-| Modern Dashboard | Next.js UI with area grouping, machine detail, and WebSocket status |
+Use Python 3.13 for the verified V2 environment and a Node.js version supported by the pinned Next.js package (Node 20.9+). The local verification environment and exact package versions are recorded with evaluation evidence.
 
----
-
-## How It Works
-
-This repo has three layers. Training is real. The dashboard is a **plant simulation** that uses the trained models. Direct `/predict` APIs are available if you want to score your own files or signals.
-
-```
-Train (Colab notebooks)
-        │
-        ▼
-trained_models/  (12 weights)
-        │
-        ├──────────────────────────────┐
-        ▼                              ▼
-Demo plant (dashboard)          Direct inference APIs
-FastAPI loads models            POST /predict/audio
-Synthetic signals every 10s     POST /predict/vibration
-Health mix ~70/20/10            POST /predict/rul
-Plant scoring + maintenance
-REST poll (5s) + WebSocket
-        │
-        ▼
-Next.js dashboard
-```
-
-### 1. Train models (offline)
-
-Notebooks in `notebooks/` train on public datasets and save weights to `trained_models/`:
-
-1. Audio ensemble (fan, pump, valve) → `.pkl`
-2. Vibration 2D CNN (10 CWRU bearing classes) → `.pth`
-3. RUL LSTM + Transformer (C-MAPSS FD001–FD004) → `.pth`
-
-### 2. Demo plant (what the dashboard shows)
-
-On backend startup:
-
-1. Loads up to 12 trained models from `trained_models/`
-2. Initializes **14 sample machines** in **4 areas** (Production Line A/B, HVAC, Utilities)
-3. A background task updates 2–4 random machines every **10 seconds**
-4. Each update generates **synthetic** vibration spectrograms and sensor sequences (not live shop-floor sensors)
-5. Health is sampled from a demo mix: ~70% healthy, ~20% warning, ~10% critical
-6. The vibration CNN and RUL ensemble may be consulted, then blended with those health targets so the demo stays readable
-7. Plant intelligence computes a health score, risk score, and prioritized maintenance queue
-8. The frontend **polls REST every 5 seconds**. WebSocket broadcasts exist (`/ws/updates`) and the dashboard shows a connection badge
-
-This is a demonstration of the monitoring UX, not a live industrial ingest pipeline.
-
-### 3. Direct model inference (optional)
-
-Use these endpoints to score real inputs without the plant simulation:
-
-- `POST /predict/audio` — upload a `.wav` file
-- `POST /predict/vibration` — send a vibration signal array
-- `POST /predict/rul` — send a sensor sequence `[timesteps, features]`
-
----
-
-## Model Performance
-
-| Model | Dataset | Metric | Result |
-|-------|---------|--------|--------|
-| Audio Anomaly | MIMII DUE | AUC | > 0.96 |
-| Vibration CNN | CWRU Bearing | Accuracy | ~98% |
-| RUL LSTM | C-MAPSS FD001 | RMSE | ~15 cycles |
-| RUL Transformer | C-MAPSS FD001 | RMSE | ~14 cycles |
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Frontend (Next.js 16)                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
-│  │  Dashboard   │  │ Area Pages   │  │ Machine Detail Pages   │ │
-│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
-│                            │                                     │
-│              HTTP REST (poll 5s) + WebSocket badge               │
-└────────────────────────────┼────────────────────────────────────┘
-                             │
-┌────────────────────────────┼────────────────────────────────────┐
-│                      Backend (FastAPI)                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
-│  │ REST /plant  │  │ REST /predict│  │ WebSocket /ws/updates  │ │
-│  │ + simulation │  │ audio/vib/RUL│  │ Plant Intelligence     │ │
-│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
-│                            │                                     │
-│                     Inference Layer                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
-│  │ Audio        │  │ Vibration    │  │ RUL Estimator          │ │
-│  │ Detector     │  │ Diagnoser    │  │ (LSTM x4 + Trans x4)   │ │
-│  └──────────────┘  └──────────────┘  └────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-                             │
-┌────────────────────────────┼────────────────────────────────────┐
-│                    Trained Models (12 total)                     │
-│  • audio_advanced_v2_{fan,pump,valve}.pkl                       │
-│  • vibration_classifier.pth (2D CNN, 10 classes)                │
-│  • rul_predictor_FD00{1,2,3,4}.pth (LSTM)                       │
-│  • rul_transformer_FD00{1,2,3,4}.pth (Transformer)              │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Visuals
-
-<img width="1470" height="684" alt="Dashboard overview" src="https://github.com/user-attachments/assets/3d761ef5-8b52-4113-b5dc-666433c4610e" />
-
-<img width="1470" height="493" alt="Plant areas and machine grouping" src="https://github.com/user-attachments/assets/e9bb600b-20ed-4249-8df3-d1d49b1262bd" />
-
-<img width="962" height="799" alt="Area detail" src="https://github.com/user-attachments/assets/9f099c64-9745-4632-b4e7-5bf78f73d541" />
-
-<img width="962" height="800" alt="Area machines" src="https://github.com/user-attachments/assets/b9876320-54bd-4e8d-a289-eb71a3be9d44" />
-
-<img width="783" height="797" alt="Machine health gauge" src="https://github.com/user-attachments/assets/e1d77826-d2c2-46b7-a9d3-d76926f39d59" />
-
-<img width="777" height="781" alt="Machine detail" src="https://github.com/user-attachments/assets/8be1b595-93cc-4ed8-af65-a6752254ce1e" />
-
-<img width="778" height="729" alt="Fault and RUL metrics" src="https://github.com/user-attachments/assets/3ed13ec4-390c-4a11-8b54-b456ee5227bb" />
-
-<img width="848" height="749" alt="Maintenance recommendations" src="https://github.com/user-attachments/assets/40c16ee7-fb45-4320-bedc-31dc6e706988" />
-
-<img width="765" height="676" alt="Alerts and status" src="https://github.com/user-attachments/assets/ad87d70e-9d31-4ee4-9062-c952b6380b70" />
-
----
-
-## Project Structure
-
-```
-MaintanenceAI/
-├── backend/
-│   ├── main.py                    # FastAPI app, model load, plant simulation
-│   ├── routes/
-│   │   ├── predict.py             # POST /predict/audio, /vibration, /rul
-│   │   └── websocket.py           # WebSocket /ws/updates
-│   └── services/
-│       ├── plant_intelligence.py  # Health scoring, risk, maintenance queue
-│       └── sample_data.py         # 14 machines, 4 plant areas
-├── frontend/
-│   └── src/
-│       ├── app/
-│       │   ├── page.tsx           # Main dashboard (REST poll + WS badge)
-│       │   ├── area/[id]/page.tsx # Area detail
-│       │   └── machine/[id]/page.tsx
-│       ├── components/Dashboard.tsx
-│       ├── hooks/useWebSocket.ts
-│       └── lib/api.ts             # REST + predict client
-├── src/
-│   ├── models/                    # PyTorch architectures
-│   ├── inference/                 # Runtime wrappers for trained weights
-│   ├── preprocessing/             # Audio, vibration, RUL pipelines
-│   └── utils/                     # Config, data loader, explainer
-├── notebooks/                     # Colab training notebooks
-├── trained_models/                # 12 saved model weights
-├── Data/                          # Local audio samples (gitignored)
-├── LICENSE
-└── requirements.txt
-```
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.10+
-- Node.js 18+
-- Trained models in `trained_models/` (included for the demo)
-
-### 1. Clone and install backend
-
-```bash
-git clone https://github.com/Dipen0210/MaintenanceAI.git
-cd MaintenanceAI
-
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-pip install -r requirements.txt
-```
-
-### 2. Start backend
-
-```bash
+```sh
+python3 -m venv venv
 source venv/bin/activate
-uvicorn backend.main:app --reload
-```
-
-- API: http://localhost:8000
-- API docs: http://localhost:8000/docs
-- WebSocket: ws://localhost:8000/ws/updates
-
-### 3. Start frontend
-
-```bash
+pip install -r requirements/scheduling.txt
 cd frontend
-npm install
-npm run dev
+npm ci
+cd ..
 ```
 
-- Dashboard: http://localhost:3000
+Models and datasets are not committed. The three historical `.pkl` files are evaluation results, not inference models. Obtain the verified model bundle from the project maintainer, then install and verify it:
 
-If the backend is down, the UI falls back to static demo data.
+```sh
+python -m scripts.model_artifacts import --bundle /path/to/maintenanceai-phase0-models.tar.gz
+python -m scripts.model_artifacts verify
+```
 
----
+The existing local bundle is generated with:
 
-## API Endpoints
+```sh
+python -m scripts.model_artifacts export --bundle artifacts/maintenanceai-phase0-models.tar.gz
+```
 
-### Plant (dashboard)
+Checksums and model identities are in `models/manifest.json`. Only load trusted model bundles: Python model formats may contain executable serialization. There is no public model-download URL currently configured. A fresh clone without a verified bundle returns explicit model-unavailable responses; it must not invent predictions.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Service health and which models loaded |
-| `/plant/summary` | GET | Overall plant health stats |
-| `/plant/machines` | GET | All machine statuses |
-| `/plant/machines/{id}` | GET | Single machine detail |
-| `/plant/areas` | GET | Plant area definitions |
-| `/plant/maintenance-queue` | GET | Prioritized maintenance tasks |
-| `/plant/machines/{id}/update` | POST | Manually update a machine |
-| `/plant/reset` | POST | Re-initialize all machines from the simulator |
-| `/ws/updates` | WebSocket | Broadcasts machine updates, plant summary, and alerts |
+To retrain the audio baseline, place the actual MIMII DUE WAV files under `Data/{fan,pump,valve}/{train,source_test,target_test}` and run:
 
-### Direct inference
+```sh
+python -m scripts.train_audio
+```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/predict/audio` | POST | Anomaly score from a `.wav` upload |
-| `/predict/vibration` | POST | Bearing fault class from a vibration signal |
-| `/predict/rul` | POST | Remaining useful life from a sensor sequence |
+The shared audio notebook invokes this same pipeline. Training consumes normal recordings only, calibrates on a disjoint subset and scores untouched test recordings. Results include recording hashes. New artifacts require a newly reviewed manifest; never relabel changed weights with an old checksum.
 
----
+Start the services in separate terminals:
 
-## Dataset Downloads
+```sh
+uvicorn backend.main:app --host 127.0.0.1 --port 8000
+```
 
-### 1. MIMII DUE (Audio Anomaly)
+```sh
+cd frontend
+npm run build
+npm start
+```
 
-[Zenodo - MIMII DUE](https://zenodo.org/record/4740355)
+Open http://localhost:3000 for the organized Operations workspace, and API documentation at http://localhost:8000/docs. The original reference dashboard remains at `/legacy`.
 
-### 2. CWRU Bearing (Vibration)
+If Turbopack cannot create its build-time worker/port in a restricted environment, the supported `npm run build -- --webpack` produces the verified production build. All Python commands should use the activated project virtual environment, or explicitly `venv/bin/python`.
 
-[CWRU Bearing Data Center](https://engineering.case.edu/bearingdatacenter/download-data-file) or [Kaggle](https://www.kaggle.com/datasets/brjapon/cwru-bearing-datasets)
+## Supported inference contracts
 
-### 3. NASA C-MAPSS (RUL)
+| Route | Input | Scope |
+|---|---|---|
+| `POST /predict/audio?machine_type=fan&section=00` | WAV, 1–60 seconds, up to 20 MiB; resampled mono 16 kHz | MIMII fan/pump/valve, sections 00–02; fitted statistical baseline |
+| `POST /predict/vibration` | `signal`: multiples of 1024 raw samples, max 65536; `sample_rate`: 48000 | CWRU bearing drive-end waveforms reshaped into 32×32 images; ten classes |
+| `POST /predict/rul` | `sequence`: nonempty rectangular array with 17 ordered features | NASA C-MAPSS FD001 turbofan baseline; 80-cycle context, scale then pad |
 
-[NASA Prognostics Repository](https://www.nasa.gov/content/prognostics-center-of-excellence-data-set-repository) or [Kaggle](https://www.kaggle.com/datasets/behrad3d/nasa-cmaps)
+RUL feature order, preprocessing, architecture inventory and dataset limitations are in [the compatibility report](docs/architecture/PHASE0_INVENTORY.md). Turbofan RUL predictions do not apply to industrial pumps, motors or conveyors. Softmax values and audio percentile scores are not calibrated failure probabilities. No validated uncertainty bounds exist yet.
 
----
+Legacy plant routes remain: `/plant/summary`, `/plant/areas`, `/plant/machines`, `/plant/machines/{id}`, `/plant/maintenance-queue`, machine updates, and reset. `/ws/updates` carries simulated updates and heartbeat messages. Missing assets return 404; malformed measurements return 4xx without corrupting state. These public legacy routes are an isolated local simulation. The V2 `/api` routes enforce backend authentication and grants.
 
-## Training Models
+## Verification and reproducibility
 
-Training notebooks in `notebooks/`:
+```sh
+python -m pytest -q
+python -m scripts.evaluate_legacy_models
+cd frontend
+npm run lint
+npx tsc --noEmit --incremental false
+npm run build
+```
 
-1. `01_Colab_Audio_Anomaly_Training.ipynb` — ensemble anomaly detection
-2. `02_Colab_Vibration_Classifier_Training.ipynb` — 2D CNN fault classification
-3. `03_Colab_RUL_Prediction_Training.ipynb` — LSTM + Transformer RUL
+Inference integration tests require the verified local model bundle and public datasets; missing inputs are a failed acceptance gate, not a passing mock. Audio training reports and legacy evaluation JSON are preserved in `docs/evaluation/`.
 
-Save trained models to `trained_models/`.
+Measured CWRU accuracy is 96.9565% on the legacy example split. FD001 LSTM/Transformer RMSE is 18.2478/16.8538 cycles. Legacy test selection limits independent validity. The newly trained audio baseline has weak performance; see per-section results before using it for any evaluation or demonstration. No industrial deployment claims are supported.
 
----
+The application has been validated locally with backend, component and browser workflows. Internal test records and UI recordings are kept outside the public commit. Reproduce checks using the commands above and the deployment guide. Qualified expert review remains pending; this is a simulated application, not industrial deployment certification.
 
-## Tech Stack
+MIT license; see LICENSE.
 
-| Layer | Technologies |
-|-------|--------------|
-| ML/DL | PyTorch, Transformer, LSTM, CNN, Autoencoder |
-| Audio | librosa, SciPy |
-| Backend | FastAPI, Uvicorn, WebSocket |
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS v4 |
-| Data | pandas, numpy, scikit-learn |
+## V2 operations foundation (Phase 1 validated)
 
----
+Open `/operations` from the dashboard. In explicitly enabled demo mode, local accounts are `engineer`, `admin`, `manager`, and `reliability`, each with password `<username>-demo-password`. The backend enforces role, plant, asset and source grants. Sessions use HTTP-only cookies; all demo identities must be disabled for any live deployment. `MAINTENANCEAI_MODE=production` disables demo seeding, but production provisioning and deployment hardening are not yet complete.
 
-## License
+Application data lives at `artifacts/maintenanceai.db` by default (`MAINTENANCEAI_DB` overrides it). Ordered migrations run at startup. SQLite is the actual transactional local store; a PostgreSQL deployment is not claimed.
 
-MIT License — see [LICENSE](LICENSE) for details.
+CSV/Parquet imports require the administrator role and `demo-import` source. Required columns: `asset_id,tag_id,timestamp_utc,value,unit,quality,source,operating_state`. Supported demo tags are `temperature` (`degC`), `vibration_rms` (`mm/s`), and `current` (`A`). Timestamps must include timezone offsets. Invalid rows are rejected with recorded reasons; stale/poor-quality observations are flagged. Imports do not write to industrial equipment.
 
----
+Optional protocol verification:
 
-## Author — Dipen Prajapati
+```sh
+pip install -r requirements/industrial.txt
+python -m scripts.verify_opcua
+```
 
-Built as a demonstration of industrial AI predictive maintenance capabilities.
+This starts an ephemeral **loopback test server**, not a plant connection. Live OT integration requires an independently controlled, approved gateway and secret provisioning; those services are not configured in this repository.
+
+
+## V2 predictive services
+
+Before running the conveyor incident, reproduce the synthetic-only model artifacts:
+
+```sh
+python -m scripts.train_synthetic_models
+```
+
+This trains real Isolation Forest and Random Forest models on explicitly generated conveyor signals. Training, validation, calibration and final test runs use disjoint seeds. The saved benchmark does **not** establish accuracy on real motors. No existing CWRU or C-MAPSS model is repurposed as a conveyor model.
+
+In `/operations`, select the demo conveyor and choose **Analyze synthetic conveyor incident**. The page shows trained outputs, spectrum evidence, uncertainty limitations, model version and persisted history. `/operations/models` shows verified artifacts and monitoring; administrator/reliability roles can activate a registered version or roll back with an audited reason.
+
+Standard V2 inference uses `POST /api/assets/{asset_id}/signals` (vibration or sequence) or `/signals/audio` (original WAV), then `POST /api/assets/{asset_id}/predictions` with `family` and `input_id`. `GET /api/assets/{asset_id}/models` lists approved bindings. A matching equipment type alone is insufficient; a registered dataset binding is required. Historical inputs are explicitly marked. Current signals expire after 60 seconds. Recording content hashes, start/end times, sampling rates, positions and preprocessing identities are preserved.
+
+C-MAPSS sequence imports require `feature_names` in this order: `op1, op2, op3, sensor_2, sensor_3, sensor_4, sensor_7, sensor_8, sensor_9, sensor_11, sensor_12, sensor_13, sensor_14, sensor_15, sensor_17, sensor_20, sensor_21`. Inputs are unscaled; the registered checkpoint applies its own scaler. Unsupported assets return `UNSUPPORTED_ASSET` without a prediction.
+
+The registry uses transactional SQLite tables instead of a separate MLflow service. Raw signal files are stored beside the configured database under `signals/`. Input distribution warnings use reference standardized distances; they are diagnostic warnings, not calibrated failure probabilities. CWRU reference statistics can be reproduced with `python -m scripts.build_model_reference` using the original dataset.
+
+## Maintenance risk and priority board
+
+After analyzing the demo incident, use **Evaluate current maintenance risk** in Operations. `/operations/risks` evaluates and ranks authorized assets. It exposes supporting evidence, missing channels, criticality and required human verification. An assessment expires with its evidence or when its configuration changes.
+
+Manager, reliability and administrator accounts can configure criticality, operating limits and risk-policy weights with an audit reason. Invalid limits, weight totals, dependency cycles and unauthorized changes are rejected by the backend. All demo limits are synthetic site configuration. The engine never authorizes operation or executes maintenance.
+
+See [the risk policy](docs/architecture/RISK_POLICY.md). Reproduce the explicitly synthetic scenario comparison using `python -m scripts.evaluate_risk_scenarios`.
+
+## Engineer Copilot and documents
+
+Install the copilot dependencies and download the actual revision-pinned local models before starting the backend:
+
+```sh
+venv/bin/python -m pip install -r requirements/copilot.txt
+venv/bin/python -m scripts.download_language_models
+venv/bin/python -m scripts.verify_language_models
+venv/bin/python -m scripts.verify_copilot_flow
+```
+
+Model files are ignored under `artifacts/language_models/`; `models/language-models.json` records revisions and checksums. The download needs internet access and approximately 1.3 GB for model weights. Inference runs locally without an API key. Missing or invalid artifacts produce explicit unavailable responses.
+
+In **Assets**, open **Demo conveyor motor**. Use its **Predictions** tab to analyze the synthetic incident, then **Maintenance risk** to evaluate priority. Open **Ask Copilot** in the top bar to investigate the evidence. The actual local Qwen model selects authorized evidence; the backend validates and renders measurements, model results and approved passages separately. Open citations, record feedback, add notes and export an investigation draft. Prior conversations can be reopened. Any maintenance still requires qualified human review.
+
+The **Approved documentation** page supports administrator PDF/Markdown/text imports and reviewer approval/revocation. Only approved, reviewed, applicable passages are retrieved. The supplied guide is explicitly synthetic DEMO-2 material; it is not an OEM manual or physical-machine procedure. CMMS CSV history imports are also available on this page. See [copilot architecture and limitations](docs/architecture/COPILOT.md).
+
+Phase 5 adds `/operations/observability` for authorized trace inspection, measured evaluation cases and human review. Run `venv/bin/python -m scripts.evaluate_copilot` to compare the three retrieval configurations locally. [LLMOps documentation](docs/architecture/LLMOPS.md) explains reproducibility, metric limitations and release gates. Expert review and remote CI execution must not be inferred from authored fixtures or local tests; see the [evaluation guide](docs/evaluation/README.md) for evidence scope and reproduction.
+
+
+## Maintenance planning
+
+Expert review was explicitly deferred by the user on 2026-10-21 so development can continue. It remains pending; this does not waive maintenance manager approval or permit industrial control.
+
+Open **Plan maintenance** on an asset, **Maintenance → New work order**, or **Draft maintenance from this investigation** after exporting an investigation. Select applicable approved inspection passages, enter duration/skills/parts/dependencies and save the evidence-linked draft. A maintenance manager reviews the candidate, selects approved work, proposes a feasible schedule and confirms it. Only final confirmation reserves resources internally. Administrator authority alone cannot approve maintenance.
+
+`/operations/scheduling` separates **Work orders**, **New work order**, **Schedules** and **Resources**. The Resources tab exposes versioned technician, spare-part, maintenance-window and operational-restriction configuration. Demo resources initially cover the next day, 08:00–16:00 UTC. Update those periods when they become historical; restarting does not silently change the calendar. Times shown in planning are UTC. The solver returns explicit conflicts or a validated feasible plan; failed search limits are not mislabeled as infeasibility.
+
+```sh
+venv/bin/python -m pytest tests/test_phase6_scheduling.py -q
+venv/bin/python -m scripts.evaluate_scheduling
+```
+
+See [scheduling architecture](docs/architecture/SCHEDULING.md) for constraint, approval, stock-reservation and optimization limits. No external CMMS write or physical maintenance completion is implied.
+
+
+## Integrated local demonstration
+
+Use `venv/bin/python -m scripts.run_demo` after installing the verified model artifacts and building the frontend. The launcher checks prerequisites, binds both services to loopback and preserves data when stopped. The complete setup, incident walkthrough, backup boundaries and actual startup checks are in [local deployment](docs/deployment/LOCAL_DEMO.md).
+
+Operations now connects alarms, risk, work orders and upcoming confirmed maintenance. Administrators can manage local identities/grants, revoke sessions, register file sources and explicit asset/sensor contracts, inspect mappings/audits and configure facility metadata. Model selections and activation histories are isolated per plant. None of these actions opens an industrial connection.
+
+See the [system architecture](docs/architecture/SYSTEM.md), [security boundaries](docs/security/SECURITY.md) and [evaluation guide](docs/evaluation/README.md).
+
+## Workspace navigation
+
+The home URL opens the authenticated dashboard. Use the left navigation in task order:
+
+1. **Dashboard:** actual authorized summaries, priorities, upcoming confirmed work and a guided starting point.
+2. **Assets:** search/filter equipment, then use Overview, Sensor readings, Predictions and Maintenance risk tabs.
+3. **Priorities:** compare current assessments; expand configuration only when needed.
+4. **Maintenance:** review work orders, create drafts, inspect schedules and configure resources in separate views.
+5. **Investigations:** a dedicated workspace for cited conversations and report export.
+
+**Ask Copilot** is available on every Operations page, retains the selected equipment context and preserves the drawer conversation while navigating. Documents, Data sources, Model registry and AI evaluations are grouped separately. Administration appears for authorized administrators. The mobile menu and Copilot support keyboard focus and Escape. Nothing in the UI grants backend access or approves maintenance automatically.
+
+See the [field workflow walkthrough](docs/deployment/FIELD_WORKFLOW.md) for the complete engineer-to-manager process.
+
+### Machine simulation and sensor onboarding
+
+Use **Run simulation** in the workspace header to start/pause the demo readings. **Machine condition** shows current sensor-limit evidence independently of saved risk assessments. **Assets → Add machine** guides administrators through registering actual equipment, multiple sensors, reviewed limits and a source-bound gateway key. **Machine & sensor map** provides a shaded technical illustration with clickable live-value markers, optional private machine-photo upload and editable sensor locations.
+
+The reference plant integration uses a read-only OPC UA bridge and the authenticated telemetry API. See [machine onboarding and gateway deployment](docs/deployment/MACHINE_ONBOARDING.md) for the complete workflow and exact limits. Registration alone does not connect a plant, qualify a predictive model or establish industrial readiness.
+
+### Field work and repair verification
+
+The demo condition selector includes mixed, normal, warning and critical scenarios. Confirmed work orders now support engineer start/coordination notes, repair reports, and independent maintenance-manager verification or return for further work. Status and history appear in the dashboard, equipment activity, maintenance views and authorized Copilot evidence. Closing work does not change sensor measurements or clear alarms. See [Field workflow and demo walkthrough](docs/deployment/FIELD_WORKFLOW.md).

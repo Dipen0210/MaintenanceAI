@@ -13,6 +13,9 @@ trained_models/*.pth
 
 # Environment
 .env
+.env.*
+!.env.example
+!.env.*.example
 .venv/
 venv/
 
@@ -30,3 +33,50 @@ frontend/out/
 
 # Logs
 *.log
+
+# Reproducible local training outputs; publish through an artifact store
+artifacts/
+trained_models/*.joblib
+frontend/test-results/
+frontend/playwright-report/
+
+# Private project planning and business material (preserved locally)
+/CODEX_EXECUTION.md
+/IMPLEMENTATION_PLAN.md
+/PROGRESS.md
+/MAINTENANCEAI_V2_SPEC.md
+/private/
+/docs/private/
+/docs/business/
+/.agents/
+/.codex/
+
+# Internal audit, UI captures and historical validation records
+/docs/audits/
+/docs/design/
+/docs/FILE_RELOCATIONS.json
+/docs/evaluation/*
+!/docs/evaluation/README.md
+!/docs/evaluation/audio_fan.json
+!/docs/evaluation/audio_pump.json
+!/docs/evaluation/audio_valve.json
+!/docs/evaluation/legacy_baseline.json
+!/docs/evaluation/rul_training_smoke.json
+!/docs/evaluation/synthetic-models.json
+!/docs/evaluation/risk-scenarios.json
+!/docs/evaluation/risk-benchmark.json
+!/docs/evaluation/scheduling-benchmark.json
+
+# Local credentials, gateway downloads, databases and key material
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+gateway-config*.json
+gateway-*.json

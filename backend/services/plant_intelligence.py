@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from datetime import datetime
 import numpy as np
+from backend.schemas import MachineInput
 
 
 @dataclass
@@ -75,6 +76,10 @@ class PlantIntelligence:
         rul_cycles: Optional[float] = None
     ) -> MachineStatus:
         """Update status for a machine."""
+        # Validate before any mutation, including internal callers.
+        MachineInput(machine_id=machine_id, machine_type=machine_type, area=area,
+                     anomaly_score=anomaly_score, fault_type=fault_type,
+                     fault_confidence=fault_confidence, rul_cycles=rul_cycles)
         # Calculate health score
         health_score = self._calculate_health_score(
             anomaly_score, fault_type, rul_cycles

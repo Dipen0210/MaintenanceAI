@@ -77,50 +77,47 @@ class FaultDiagnoser:
     
     def preprocess(self, signal: np.ndarray) -> torch.Tensor:
         """Preprocess input signal or image."""
-        signal = signal.astype(np.float32)
-        
-        # Normalize
-        signal = (signal - np.mean(signal)) / (np.std(signal) + 1e-8)
-        
+        signal = np.asarray(signal, dtype=np.float32)
+        if not signal.size or not np.isfinite(signal).all():
+            raise ValueError("Signal must contain finite samples")
         if self.data_type == '2D':
-            # Expect 2D input (H, W) or (C, H, W)
-            if len(signal.shape) == 2:
-                tensor = torch.tensor(signal).unsqueeze(0).unsqueeze(0)  # [1, 1, H, W]
-            elif len(signal.shape) == 3:
-                tensor = torch.tensor(signal).unsqueeze(0)  # [1, C, H, W]
+            # The supplied CWRU NPZ stores consecutive 1024-point waveforms
+            # reshaped in row-major order, not frequency spectrograms.
+            if signal.ndim == 1:
+                if len(signal) % 1024 or len(signal) > 65536:
+                    raise ValueError("2D CWRU model requires 1024-sample windows (max 65536)")
+                signal = signal.reshape(-1, 1, 32, 32)
+            elif signal.shape == (32, 32):
+                signal = signal[None, None, :, :]
+            elif signal.shape == (1, 32, 32):
+                signal = signal[None, :, :, :]
             else:
-                raise ValueError(f"Unexpected 2D input shape: {signal.shape}")
+                raise ValueError("Expected raw 1024-sample windows or a 32x32 waveform image")
+            axes = (1, 2, 3)
         else:
-            # Expect 1D input (signal_length,)
-            if len(signal.shape) == 1:
-                tensor = torch.tensor(signal).unsqueeze(0).unsqueeze(0)  # [1, 1, L]
-            else:
-                raise ValueError(f"Unexpected 1D input shape: {signal.shape}")
-        
-        return tensor.to(self.device)
-    
+            if signal.ndim != 1 or len(signal) < 1024 or len(signal) > 65536:
+                raise ValueError("Expected 1024–65536 raw vibration samples")
+            signal = signal[None, None, :]
+            axes = (1, 2)
+        signal = (signal - signal.mean(axis=axes, keepdims=True)) / (signal.std(axis=axes, keepdims=True) + 1e-8)
+        return torch.as_tensor(signal, dtype=torch.float32, device=self.device)
+
     def predict(self, signal: np.ndarray) -> Dict:
-        """Predict fault type from vibration signal or spectrogram."""
         tensor = self.preprocess(signal)
-        
         with torch.no_grad():
-            logits = self.model(tensor)
-            probs = torch.softmax(logits, dim=1)
-        
-        confidence, pred_idx = torch.max(probs, dim=1)
-        pred_idx = pred_idx.item()
-        confidence = confidence.item()
-        
-        fault_type = self.class_labels[pred_idx] if pred_idx < len(self.class_labels) else f'Class_{pred_idx}'
-        description = self.FAULT_DESCRIPTIONS.get(fault_type, f'Fault type: {fault_type}')
-        
+            # Multiple complete windows are scored independently and averaged.
+            probs = torch.softmax(self.model(tensor), dim=1).mean(dim=0)
+        if not torch.isfinite(probs).all():
+            raise ValueError("Model produced non-finite probabilities")
+        confidence, pred_idx = torch.max(probs, dim=0)
+        fault_type = str(self.class_labels[pred_idx.item()])
         return {
             'fault_type': fault_type,
-            'confidence': confidence,
-            'description': description,
+            'confidence': confidence.item(),
+            'description': self.FAULT_DESCRIPTIONS.get(fault_type, f'Fault type: {fault_type}'),
             'is_faulty': 'normal' not in fault_type.lower(),
         }
-    
+
     def get_severity(self, fault_type: str) -> str:
         """Get fault severity level."""
         if 'Normal' in fault_type or 'normal' in fault_type:

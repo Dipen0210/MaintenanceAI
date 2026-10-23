@@ -4,24 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { HealthGauge, StatCard, CircularProgress } from '@/components/Dashboard';
-import { apiClient, MachineStatus } from '@/lib/api';
-
-// Demo data
-const getDemoMachine = (id: string): MachineStatus => ({
-    machine_id: id,
-    machine_type: id.toLowerCase().includes('fan') ? 'fan' :
-        id.toLowerCase().includes('pump') ? 'pump' :
-            id.toLowerCase().includes('valve') ? 'valve' : 'bearing',
-    area: id.toLowerCase().includes('fan') ? 'cooling' :
-        id.toLowerCase().includes('pump') ? 'hydraulics' :
-            id.toLowerCase().includes('valve') ? 'flow_control' : 'bearings',
-    anomaly_score: 0.15,
-    fault_type: 'Ball_014',
-    fault_confidence: 0.85,
-    rul_cycles: 45,
-    health_score: 0.45,
-    last_updated: new Date().toISOString(),
-});
+import { apiClient, ApiError, MachineStatus } from '@/lib/api';
 
 const machineIcons: Record<string, string> = {
     fan: '🌀',
@@ -35,31 +18,37 @@ export default function MachineDetailPage() {
     const machineId = params.id as string;
 
     const [machine, setMachine] = useState<MachineStatus | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [isLive, setIsLive] = useState(false);
 
     useEffect(() => {
+        let active = true;
         const fetchMachine = async () => {
             try {
                 const data = await apiClient.getMachine(machineId);
+                if (!active) return;
+                setError(null);
                 setMachine(data);
                 setIsLive(true);
-            } catch {
-                setMachine(getDemoMachine(machineId));
+            } catch (err) {
+                if (!active) return;
+                setError(err instanceof ApiError && err.status === 404 ? 'Machine not found' : 'Machine data unavailable');
+                setMachine(null);
                 setIsLive(false);
             }
         };
 
         fetchMachine();
         const interval = setInterval(fetchMachine, 3000);
-        return () => clearInterval(interval);
+        return () => { active = false; clearInterval(interval); };
     }, [machineId]);
 
-    if (!machine) {
+    if (error || !machine) {
         return (
             <div className="min-h-screen gradient-bg flex items-center justify-center">
                 <div className="glass rounded-2xl p-8 flex items-center gap-4">
                     <div className="animate-spin rounded-full h-8 w-8 border-2 border-t-blue-500 border-white/20" />
-                    <span className="text-gray-400">Loading machine data...</span>
+                    <span className="text-gray-400">{error || 'Loading machine data...'}</span>
                 </div>
             </div>
         );
@@ -111,7 +100,7 @@ export default function MachineDetailPage() {
                 <div className="max-w-5xl mx-auto px-6 py-4">
                     <div className="flex items-center gap-4">
                         <Link
-                            href="/"
+                            href="/legacy"
                             className="p-2.5 rounded-xl glass hover:bg-white/10 transition-colors"
                         >
                             <span className="text-gray-400">←</span>
@@ -127,7 +116,7 @@ export default function MachineDetailPage() {
                             ${isLive ? 'ring-1 ring-emerald-500/30' : 'ring-1 ring-amber-500/30'}`}>
                             <span className={`status-dot ${isLive ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                             <span className={`text-sm font-medium ${isLive ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                {isLive ? 'Live' : 'Demo'}
+                                {isLive ? 'Simulation connected' : 'Disconnected'}
                             </span>
                         </div>
                     </div>
@@ -164,7 +153,7 @@ export default function MachineDetailPage() {
                     </h3>
                     <HealthGauge value={machine.health_score} size="lg" />
                     <p className="text-gray-500 text-sm mt-4">
-                        Health score is calculated from anomaly detection, fault diagnosis, and remaining useful life predictions using AI models.
+                        This plant dashboard shows simulated condition indicators. Real model inference is available separately for supported public datasets; simulated remaining life is not an industrial RUL prediction.
                     </p>
                 </div>
 
@@ -180,7 +169,7 @@ export default function MachineDetailPage() {
                         title="Remaining Life"
                         value={machine.rul_cycles !== null ? `${Math.round(machine.rul_cycles)}` : 'N/A'}
                         subtitle="Cycles remaining"
-                        color={machine.rul_cycles && machine.rul_cycles < 50 ? 'red' : machine.rul_cycles && machine.rul_cycles < 80 ? 'yellow' : 'green'}
+                        color={machine.rul_cycles !== null && machine.rul_cycles < 50 ? 'red' : machine.rul_cycles !== null && machine.rul_cycles < 80 ? 'yellow' : 'green'}
                     />
                     <StatCard
                         title="Fault Status"
@@ -249,7 +238,7 @@ export default function MachineDetailPage() {
                 {/* Back Link */}
                 <div className="pt-4">
                     <Link
-                        href="/"
+                        href="/legacy"
                         className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
                     >
                         ← Back to Dashboard

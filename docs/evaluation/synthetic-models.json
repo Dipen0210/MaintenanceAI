@@ -1,0 +1,70 @@
+{
+  "dataset": "synthetic-conveyor-v1",
+  "train_seeds": [
+    0,
+    899
+  ],
+  "validation_seeds": [
+    10000,
+    10299
+  ],
+  "test_seeds": [
+    20000,
+    20599
+  ],
+  "normal_calibration_seeds": [
+    30000,
+    30299
+  ],
+  "selection": "Validation accuracy, smaller model on ties. Test runs never used for selection.",
+  "scope": "Only the explicitly synthetic simulator distribution; not industrial validation.",
+  "champion_id": "conveyor-synthetic-64-1cd3c49227d0",
+  "experiments": [
+    {
+      "trees": 64,
+      "validation_accuracy": 1.0,
+      "test_accuracy": 1.0,
+      "test_anomaly_auc": 0.9993375,
+      "confusion_matrix": [
+        [
+          200,
+          0,
+          0
+        ],
+        [
+          0,
+          200,
+          0
+        ],
+        [
+          0,
+          0,
+          200
+        ]
+      ]
+    },
+    {
+      "trees": 128,
+      "validation_accuracy": 1.0,
+      "test_accuracy": 1.0,
+      "test_anomaly_auc": 0.9995875,
+      "confusion_matrix": [
+        [
+          200,
+          0,
+          0
+        ],
+        [
+          0,
+          200,
+          0
+        ],
+        [
+          0,
+          0,
+          200
+        ]
+      ]
+    }
+  ]
+}

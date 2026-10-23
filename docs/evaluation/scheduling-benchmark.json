@@ -1,0 +1,1328 @@
+{
+  "timestamp_utc": "2026-10-21T23:29:43.716605+00:00",
+  "solver_version": "maintenance-cpsat-v1",
+  "scope": "Six authored synthetic software scenarios; not measured industrial downtime or maintenance effectiveness.",
+  "comparison": "Both greedy baselines enforce the same hard constraints and precedence. Arrival/priority order and earliest placement differ; neither backtracks. Failed greedy search is not proof of infeasibility. Utilization is scheduled team-minutes divided by configured technician count times the horizon.",
+  "fixture_sha256": "5eb63ccd58ff4610c43115d8b442ba6cf9a79d552792bc68f8019436926c7928",
+  "cases": [
+    {
+      "id": "priority_order",
+      "purpose": "Earlier high-priority work avoids overdue exposure.",
+      "snapshot": {
+        "start_utc": "2030-01-01T08:00:00+00:00",
+        "end_utc": "2030-01-01T12:00:00+00:00",
+        "orders": [
+          {
+            "id": "low",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "Monitor"
+            }
+          },
+          {
+            "id": "high",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "High priority"
+            }
+          }
+        ],
+        "existing": [],
+        "config": {
+          "technicians": [
+            {
+              "id": "A",
+              "name": "Synthetic technician A",
+              "skills": [
+                "mechanical",
+                "electrical"
+              ],
+              "availability": [
+                {
+                  "start_utc": "2030-01-01T08:00:00+00:00",
+                  "end_utc": "2030-01-01T12:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "parts": [
+            {
+              "id": "kit",
+              "name": "Synthetic inspection kit",
+              "quantity": 5,
+              "available_at": "2030-01-01T08:00:00+00:00"
+            }
+          ],
+          "equipment_windows": [
+            {
+              "start_utc": "2030-01-01T08:00:00+00:00",
+              "end_utc": "2030-01-01T12:00:00+00:00",
+              "id": "window-A",
+              "asset_id": "SIM-A",
+              "disruption_cost_per_minute": 1
+            }
+          ],
+          "blackouts": [],
+          "simulation_only": true
+        }
+      },
+      "runs": {
+        "earliest_available": {
+          "result": {
+            "feasibility": "feasible",
+            "assignments": [
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T08:00:00+00:00",
+                "end_utc": "2030-01-01T09:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60
+              },
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:00:00+00:00",
+                "end_utc": "2030-01-01T10:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60
+              }
+            ],
+            "elapsed_ms": 1.534,
+            "conflicts": []
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 1,
+            "weighted_completion": 12060,
+            "production_disruption": 120,
+            "technician_utilization": 0.5
+          }
+        },
+        "priority_only": {
+          "result": {
+            "feasibility": "feasible",
+            "assignments": [
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T08:00:00+00:00",
+                "end_utc": "2030-01-01T09:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60
+              },
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:00:00+00:00",
+                "end_utc": "2030-01-01T10:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60
+              }
+            ],
+            "elapsed_ms": 1.485,
+            "conflicts": []
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 0,
+            "weighted_completion": 6120,
+            "production_disruption": 120,
+            "technician_utilization": 0.5
+          }
+        },
+        "constraint_optimized": {
+          "result": {
+            "solver_version": "maintenance-cpsat-v1",
+            "ortools_version": "9.15.6755",
+            "resolution_minutes": 1,
+            "assignments": [
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T08:00:00+00:00",
+                "end_utc": "2030-01-01T09:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "window_id": "window-A",
+                "parts": {
+                  "kit": 1
+                },
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60
+              },
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:00:00+00:00",
+                "end_utc": "2030-01-01T10:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "window_id": "window-A",
+                "parts": {
+                  "kit": 1
+                },
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60
+              }
+            ],
+            "conflicts": [],
+            "objective": 6510.0,
+            "rationale": "Hard constraints precede all optimization. Weighted completion time, overdue exposure, production disruption and makespan are minimized.",
+            "approval_required": true,
+            "simulation_only": true,
+            "feasibility": "feasible",
+            "elapsed_ms": 4.286,
+            "optimal": true,
+            "solver_status": "OPTIMAL"
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 0,
+            "weighted_completion": 6120,
+            "production_disruption": 120,
+            "technician_utilization": 0.5
+          }
+        }
+      }
+    },
+    {
+      "id": "dependency",
+      "purpose": "Precedence overrides arrival order.",
+      "snapshot": {
+        "start_utc": "2030-01-01T08:00:00+00:00",
+        "end_utc": "2030-01-01T12:00:00+00:00",
+        "orders": [
+          {
+            "id": "low",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [
+                "high"
+              ],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "Monitor"
+            }
+          },
+          {
+            "id": "high",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "High priority"
+            }
+          }
+        ],
+        "existing": [],
+        "config": {
+          "technicians": [
+            {
+              "id": "A",
+              "name": "Synthetic technician A",
+              "skills": [
+                "mechanical",
+                "electrical"
+              ],
+              "availability": [
+                {
+                  "start_utc": "2030-01-01T08:00:00+00:00",
+                  "end_utc": "2030-01-01T12:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "parts": [
+            {
+              "id": "kit",
+              "name": "Synthetic inspection kit",
+              "quantity": 5,
+              "available_at": "2030-01-01T08:00:00+00:00"
+            }
+          ],
+          "equipment_windows": [
+            {
+              "start_utc": "2030-01-01T08:00:00+00:00",
+              "end_utc": "2030-01-01T12:00:00+00:00",
+              "id": "window-A",
+              "asset_id": "SIM-A",
+              "disruption_cost_per_minute": 1
+            }
+          ],
+          "blackouts": [],
+          "simulation_only": true
+        }
+      },
+      "runs": {
+        "earliest_available": {
+          "result": {
+            "feasibility": "feasible",
+            "assignments": [
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T08:00:00+00:00",
+                "end_utc": "2030-01-01T09:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60
+              },
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:00:00+00:00",
+                "end_utc": "2030-01-01T10:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60
+              }
+            ],
+            "elapsed_ms": 1.485,
+            "conflicts": []
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 0,
+            "weighted_completion": 6120,
+            "production_disruption": 120,
+            "technician_utilization": 0.5
+          }
+        },
+        "priority_only": {
+          "result": {
+            "feasibility": "feasible",
+            "assignments": [
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T08:00:00+00:00",
+                "end_utc": "2030-01-01T09:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60
+              },
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:00:00+00:00",
+                "end_utc": "2030-01-01T10:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60
+              }
+            ],
+            "elapsed_ms": 1.466,
+            "conflicts": []
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 0,
+            "weighted_completion": 6120,
+            "production_disruption": 120,
+            "technician_utilization": 0.5
+          }
+        },
+        "constraint_optimized": {
+          "result": {
+            "solver_version": "maintenance-cpsat-v1",
+            "ortools_version": "9.15.6755",
+            "resolution_minutes": 1,
+            "assignments": [
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T08:00:00+00:00",
+                "end_utc": "2030-01-01T09:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "window_id": "window-A",
+                "parts": {
+                  "kit": 1
+                },
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60
+              },
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:00:00+00:00",
+                "end_utc": "2030-01-01T10:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "window_id": "window-A",
+                "parts": {
+                  "kit": 1
+                },
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60
+              }
+            ],
+            "conflicts": [],
+            "objective": 6510.0,
+            "rationale": "Hard constraints precede all optimization. Weighted completion time, overdue exposure, production disruption and makespan are minimized.",
+            "approval_required": true,
+            "simulation_only": true,
+            "feasibility": "feasible",
+            "elapsed_ms": 1.132,
+            "optimal": true,
+            "solver_status": "OPTIMAL"
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 0,
+            "weighted_completion": 6120,
+            "production_disruption": 120,
+            "technician_utilization": 0.5
+          }
+        }
+      }
+    },
+    {
+      "id": "delivery_and_restriction",
+      "purpose": "Parts arrival and operational blackout postpone work.",
+      "snapshot": {
+        "start_utc": "2030-01-01T08:00:00+00:00",
+        "end_utc": "2030-01-01T12:00:00+00:00",
+        "orders": [
+          {
+            "id": "low",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "Monitor"
+            }
+          },
+          {
+            "id": "high",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "High priority"
+            }
+          }
+        ],
+        "existing": [],
+        "config": {
+          "technicians": [
+            {
+              "id": "A",
+              "name": "Synthetic technician A",
+              "skills": [
+                "mechanical",
+                "electrical"
+              ],
+              "availability": [
+                {
+                  "start_utc": "2030-01-01T08:00:00+00:00",
+                  "end_utc": "2030-01-01T12:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "parts": [
+            {
+              "id": "kit",
+              "name": "Synthetic inspection kit",
+              "quantity": 5,
+              "available_at": "2030-01-01T09:00:00+00:00"
+            }
+          ],
+          "equipment_windows": [
+            {
+              "start_utc": "2030-01-01T08:00:00+00:00",
+              "end_utc": "2030-01-01T12:00:00+00:00",
+              "id": "window-A",
+              "asset_id": "SIM-A",
+              "disruption_cost_per_minute": 1
+            }
+          ],
+          "blackouts": [
+            {
+              "asset_id": "SIM-A",
+              "start_utc": "2030-01-01T08:00:00+00:00",
+              "end_utc": "2030-01-01T09:30:00+00:00",
+              "reason": "Synthetic production restriction"
+            }
+          ],
+          "simulation_only": true
+        }
+      },
+      "runs": {
+        "earliest_available": {
+          "result": {
+            "feasibility": "feasible",
+            "assignments": [
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:30:00+00:00",
+                "end_utc": "2030-01-01T10:30:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60
+              },
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T10:30:00+00:00",
+                "end_utc": "2030-01-01T11:30:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60
+              }
+            ],
+            "elapsed_ms": 5.214,
+            "conflicts": []
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 1,
+            "weighted_completion": 21150,
+            "production_disruption": 120,
+            "technician_utilization": 0.5
+          }
+        },
+        "priority_only": {
+          "result": {
+            "feasibility": "feasible",
+            "assignments": [
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:30:00+00:00",
+                "end_utc": "2030-01-01T10:30:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60
+              },
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T10:30:00+00:00",
+                "end_utc": "2030-01-01T11:30:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60
+              }
+            ],
+            "elapsed_ms": 5.13,
+            "conflicts": []
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 1,
+            "weighted_completion": 15210,
+            "production_disruption": 120,
+            "technician_utilization": 0.5
+          }
+        },
+        "constraint_optimized": {
+          "result": {
+            "solver_version": "maintenance-cpsat-v1",
+            "ortools_version": "9.15.6755",
+            "resolution_minutes": 1,
+            "assignments": [
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:30:00+00:00",
+                "end_utc": "2030-01-01T10:30:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "window_id": "window-A",
+                "parts": {
+                  "kit": 1
+                },
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60
+              },
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T10:30:00+00:00",
+                "end_utc": "2030-01-01T11:30:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "window_id": "window-A",
+                "parts": {
+                  "kit": 1
+                },
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60
+              }
+            ],
+            "conflicts": [],
+            "objective": 46140.0,
+            "rationale": "Hard constraints precede all optimization. Weighted completion time, overdue exposure, production disruption and makespan are minimized.",
+            "approval_required": true,
+            "simulation_only": true,
+            "feasibility": "feasible",
+            "elapsed_ms": 1.7,
+            "optimal": true,
+            "solver_status": "OPTIMAL"
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 1,
+            "weighted_completion": 15210,
+            "production_disruption": 120,
+            "technician_utilization": 0.5
+          }
+        }
+      }
+    },
+    {
+      "id": "parts_shortage",
+      "purpose": "No algorithm may invent missing stock.",
+      "snapshot": {
+        "start_utc": "2030-01-01T08:00:00+00:00",
+        "end_utc": "2030-01-01T12:00:00+00:00",
+        "orders": [
+          {
+            "id": "low",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "Monitor"
+            }
+          },
+          {
+            "id": "high",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "High priority"
+            }
+          }
+        ],
+        "existing": [],
+        "config": {
+          "technicians": [
+            {
+              "id": "A",
+              "name": "Synthetic technician A",
+              "skills": [
+                "mechanical",
+                "electrical"
+              ],
+              "availability": [
+                {
+                  "start_utc": "2030-01-01T08:00:00+00:00",
+                  "end_utc": "2030-01-01T12:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "parts": [
+            {
+              "id": "kit",
+              "name": "Synthetic inspection kit",
+              "quantity": 1,
+              "available_at": "2030-01-01T08:00:00+00:00"
+            }
+          ],
+          "equipment_windows": [
+            {
+              "start_utc": "2030-01-01T08:00:00+00:00",
+              "end_utc": "2030-01-01T12:00:00+00:00",
+              "id": "window-A",
+              "asset_id": "SIM-A",
+              "disruption_cost_per_minute": 1
+            }
+          ],
+          "blackouts": [],
+          "simulation_only": true
+        }
+      },
+      "runs": {
+        "earliest_available": {
+          "result": {
+            "feasibility": "no_feasible_greedy_plan",
+            "assignments": [],
+            "elapsed_ms": 4.215,
+            "conflicts": [
+              "Greedy strategy did not find a complete plan; this is not a proof of infeasibility."
+            ]
+          },
+          "metrics": {
+            "feasible": false,
+            "hard_constraint_violations": null,
+            "overdue_priority_work": null,
+            "weighted_completion": null,
+            "production_disruption": null,
+            "technician_utilization": null
+          }
+        },
+        "priority_only": {
+          "result": {
+            "feasibility": "no_feasible_greedy_plan",
+            "assignments": [],
+            "elapsed_ms": 4.2,
+            "conflicts": [
+              "Greedy strategy did not find a complete plan; this is not a proof of infeasibility."
+            ]
+          },
+          "metrics": {
+            "feasible": false,
+            "hard_constraint_violations": null,
+            "overdue_priority_work": null,
+            "weighted_completion": null,
+            "production_disruption": null,
+            "technician_utilization": null
+          }
+        },
+        "constraint_optimized": {
+          "result": {
+            "solver_version": "maintenance-cpsat-v1",
+            "ortools_version": "9.15.6755",
+            "resolution_minutes": 1,
+            "assignments": [],
+            "conflicts": [
+              "Insufficient unreserved parts: kit; required 2, configured 1"
+            ],
+            "objective": null,
+            "rationale": "Hard constraints precede all optimization. Weighted completion time, overdue exposure, production disruption and makespan are minimized.",
+            "approval_required": true,
+            "simulation_only": true,
+            "feasibility": "infeasible",
+            "elapsed_ms": 0.007
+          },
+          "metrics": {
+            "feasible": false,
+            "hard_constraint_violations": null,
+            "overdue_priority_work": null,
+            "weighted_completion": null,
+            "production_disruption": null,
+            "technician_utilization": null
+          }
+        }
+      }
+    },
+    {
+      "id": "scarce_skill_assignment",
+      "purpose": "Greedy use of a dual-skilled technician can block otherwise feasible parallel work.",
+      "snapshot": {
+        "start_utc": "2030-01-01T08:00:00+00:00",
+        "end_utc": "2030-01-01T09:00:00+00:00",
+        "orders": [
+          {
+            "id": "low",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "High priority"
+            }
+          },
+          {
+            "id": "high",
+            "asset_id": "SIM-B",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "electrical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "Monitor"
+            }
+          }
+        ],
+        "existing": [],
+        "config": {
+          "technicians": [
+            {
+              "id": "A",
+              "name": "Synthetic technician A",
+              "skills": [
+                "mechanical",
+                "electrical"
+              ],
+              "availability": [
+                {
+                  "start_utc": "2030-01-01T08:00:00+00:00",
+                  "end_utc": "2030-01-01T12:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "id": "B",
+              "name": "Synthetic mechanical technician B",
+              "skills": [
+                "mechanical"
+              ],
+              "availability": [
+                {
+                  "start_utc": "2030-01-01T08:00:00+00:00",
+                  "end_utc": "2030-01-01T12:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "parts": [
+            {
+              "id": "kit",
+              "name": "Synthetic inspection kit",
+              "quantity": 5,
+              "available_at": "2030-01-01T08:00:00+00:00"
+            }
+          ],
+          "equipment_windows": [
+            {
+              "start_utc": "2030-01-01T08:00:00+00:00",
+              "end_utc": "2030-01-01T12:00:00+00:00",
+              "id": "window-A",
+              "asset_id": "SIM-A",
+              "disruption_cost_per_minute": 1
+            },
+            {
+              "start_utc": "2030-01-01T08:00:00+00:00",
+              "end_utc": "2030-01-01T12:00:00+00:00",
+              "id": "window-B",
+              "asset_id": "SIM-B",
+              "disruption_cost_per_minute": 1
+            }
+          ],
+          "blackouts": [],
+          "simulation_only": true
+        }
+      },
+      "runs": {
+        "earliest_available": {
+          "result": {
+            "feasibility": "no_feasible_greedy_plan",
+            "assignments": [],
+            "elapsed_ms": 0.12,
+            "conflicts": [
+              "Greedy strategy did not find a complete plan; this is not a proof of infeasibility."
+            ]
+          },
+          "metrics": {
+            "feasible": false,
+            "hard_constraint_violations": null,
+            "overdue_priority_work": null,
+            "weighted_completion": null,
+            "production_disruption": null,
+            "technician_utilization": null
+          }
+        },
+        "priority_only": {
+          "result": {
+            "feasibility": "no_feasible_greedy_plan",
+            "assignments": [],
+            "elapsed_ms": 0.109,
+            "conflicts": [
+              "Greedy strategy did not find a complete plan; this is not a proof of infeasibility."
+            ]
+          },
+          "metrics": {
+            "feasible": false,
+            "hard_constraint_violations": null,
+            "overdue_priority_work": null,
+            "weighted_completion": null,
+            "production_disruption": null,
+            "technician_utilization": null
+          }
+        },
+        "constraint_optimized": {
+          "result": {
+            "solver_version": "maintenance-cpsat-v1",
+            "ortools_version": "9.15.6755",
+            "resolution_minutes": 1,
+            "assignments": [
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-B",
+                "start_utc": "2030-01-01T08:00:00+00:00",
+                "end_utc": "2030-01-01T09:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "window_id": "window-B",
+                "parts": {
+                  "kit": 1
+                },
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60
+              },
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T08:00:00+00:00",
+                "end_utc": "2030-01-01T09:00:00+00:00",
+                "technician_ids": [
+                  "B"
+                ],
+                "window_id": "window-A",
+                "parts": {
+                  "kit": 1
+                },
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60
+              }
+            ],
+            "conflicts": [],
+            "objective": 6240.0,
+            "rationale": "Hard constraints precede all optimization. Weighted completion time, overdue exposure, production disruption and makespan are minimized.",
+            "approval_required": true,
+            "simulation_only": true,
+            "feasibility": "feasible",
+            "elapsed_ms": 0.771,
+            "optimal": true,
+            "solver_status": "OPTIMAL"
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 0,
+            "weighted_completion": 6060,
+            "production_disruption": 120,
+            "technician_utilization": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "disruption_tradeoff",
+      "purpose": "Compare explicit disruption and delay preferences under identical hard constraints.",
+      "snapshot": {
+        "start_utc": "2030-01-01T08:00:00+00:00",
+        "end_utc": "2030-01-01T12:00:00+00:00",
+        "orders": [
+          {
+            "id": "low",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "Monitor"
+            }
+          },
+          {
+            "id": "high",
+            "asset_id": "SIM-A",
+            "content": {
+              "duration_minutes": 60,
+              "required_skills": [
+                "mechanical"
+              ],
+              "team_size": 1,
+              "parts": {
+                "kit": 1
+              },
+              "dependencies": [],
+              "due_at": "2030-01-01T09:30:00+00:00",
+              "priority": "High priority"
+            }
+          }
+        ],
+        "existing": [],
+        "config": {
+          "technicians": [
+            {
+              "id": "A",
+              "name": "Synthetic technician A",
+              "skills": [
+                "mechanical",
+                "electrical"
+              ],
+              "availability": [
+                {
+                  "start_utc": "2030-01-01T08:00:00+00:00",
+                  "end_utc": "2030-01-01T12:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "parts": [
+            {
+              "id": "kit",
+              "name": "Synthetic inspection kit",
+              "quantity": 5,
+              "available_at": "2030-01-01T08:00:00+00:00"
+            }
+          ],
+          "equipment_windows": [
+            {
+              "start_utc": "2030-01-01T08:00:00+00:00",
+              "end_utc": "2030-01-01T12:00:00+00:00",
+              "id": "window-A",
+              "asset_id": "SIM-A",
+              "disruption_cost_per_minute": 1000
+            },
+            {
+              "id": "low-disruption",
+              "asset_id": "SIM-A",
+              "start_utc": "2030-01-01T09:00:00+00:00",
+              "end_utc": "2030-01-01T12:00:00+00:00",
+              "disruption_cost_per_minute": 0
+            }
+          ],
+          "blackouts": [],
+          "simulation_only": true
+        }
+      },
+      "runs": {
+        "earliest_available": {
+          "result": {
+            "feasibility": "feasible",
+            "assignments": [
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T08:00:00+00:00",
+                "end_utc": "2030-01-01T09:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 60000
+              },
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:00:00+00:00",
+                "end_utc": "2030-01-01T10:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "low-disruption",
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 0
+              }
+            ],
+            "elapsed_ms": 2.841,
+            "conflicts": []
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 1,
+            "weighted_completion": 12060,
+            "production_disruption": 60000,
+            "technician_utilization": 0.5
+          }
+        },
+        "priority_only": {
+          "result": {
+            "feasibility": "feasible",
+            "assignments": [
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T08:00:00+00:00",
+                "end_utc": "2030-01-01T09:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "window-A",
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 60000
+              },
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:00:00+00:00",
+                "end_utc": "2030-01-01T10:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "parts": {
+                  "kit": 1
+                },
+                "window_id": "low-disruption",
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 0
+              }
+            ],
+            "elapsed_ms": 2.816,
+            "conflicts": []
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 0,
+            "weighted_completion": 6120,
+            "production_disruption": 60000,
+            "technician_utilization": 0.5
+          }
+        },
+        "constraint_optimized": {
+          "result": {
+            "solver_version": "maintenance-cpsat-v1",
+            "ortools_version": "9.15.6755",
+            "resolution_minutes": 1,
+            "assignments": [
+              {
+                "work_order_id": "high",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T09:00:00+00:00",
+                "end_utc": "2030-01-01T10:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "window_id": "low-disruption",
+                "parts": {
+                  "kit": 1
+                },
+                "duration_minutes": 60,
+                "priority": "High priority",
+                "disruption_cost": 0
+              },
+              {
+                "work_order_id": "low",
+                "asset_id": "SIM-A",
+                "start_utc": "2030-01-01T10:00:00+00:00",
+                "end_utc": "2030-01-01T11:00:00+00:00",
+                "technician_ids": [
+                  "A"
+                ],
+                "window_id": "low-disruption",
+                "parts": {
+                  "kit": 1
+                },
+                "duration_minutes": 60,
+                "priority": "Monitor",
+                "disruption_cost": 0
+              }
+            ],
+            "conflicts": [],
+            "objective": 27810.0,
+            "rationale": "Hard constraints precede all optimization. Weighted completion time, overdue exposure, production disruption and makespan are minimized.",
+            "approval_required": true,
+            "simulation_only": true,
+            "feasibility": "feasible",
+            "elapsed_ms": 2.152,
+            "optimal": true,
+            "solver_status": "OPTIMAL"
+          },
+          "metrics": {
+            "feasible": true,
+            "hard_constraint_violations": 0,
+            "overdue_priority_work": 1,
+            "weighted_completion": 12180,
+            "production_disruption": 0,
+            "technician_utilization": 0.5
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+export type Period={start_utc:string;end_utc:string};
+export type PlanningConfig={technicians:{id:string;name:string;skills:string[];availability:Period[]}[];parts:{id:string;name:string;quantity:number;available_at:string}[];equipment_windows:(Period&{id:string;asset_id:string;disruption_cost_per_minute:number})[];blackouts:(Period&{asset_id:string;reason:string})[];reason:string;simulation_only:boolean};
+export type Procedure={id:string;document_id:string;title:string;revision:string;page:number;text:string};
+export type WorkOrder={id:string;asset_id:string;created_at:string;status:string;reviewed_by:string|null;review_reason:string|null;execution:{version:number;status:string|null;updated_at:string|null;window:Period|null;events:{id:string;actor_id:string;created_at:string;action:string;status:string;notes:string;version:number}[]};content:{title:string;task:string;priority:string;duration_minutes:number;required_skills:string[];team_size:number;parts:Record<string,number>;dependencies:string[];due_at:string;procedures:Procedure[];safety:string;risk_snapshot:{id:string;timestamp_utc:string;priority:string;score:number|null;missing_evidence:string[]};investigation_id:string|null;simulation_only:boolean}};
+export type Assignment={work_status?:string;work_order_id:string;asset_id:string;start_utc:string;end_utc:string;technician_ids:string[];parts:Record<string,number>;priority:string;duration_minutes:number;disruption_cost:number};
+export type Proposal={id:string;created_at:string;config_id:string;status:string;reviewed_by:string|null;review_reason:string|null;result:{feasibility:string;assignments:Assignment[];conflicts:string[];rationale:string;optimal?:boolean;elapsed_ms:number;objective:number|null;simulation_only:boolean}};
+export const utcField=(value:string)=>value.slice(0,16);
+export const utcValue=(value:string)=>value?value+':00Z':'';
+
+export const workStatusLabel=(status:string)=>({in_progress:"In progress",awaiting_verification:"Awaiting verification",completed:"Completed"}[status]||status);

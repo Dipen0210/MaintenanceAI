@@ -1,0 +1,2 @@
+-r copilot.txt
+ortools>=9.12,<10

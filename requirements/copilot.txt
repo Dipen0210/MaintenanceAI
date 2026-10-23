@@ -1,0 +1,5 @@
+-r dev.txt
+transformers>=4.51,<5
+pdfplumber>=0.11,<1
+reportlab>=4,<5
+lm-format-enforcer>=0.11,<1

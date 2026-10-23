@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { MachineStatus, PlantSummary } from '@/lib/api';
 
 interface WebSocketMessage {
@@ -36,21 +36,20 @@ export function useWebSocket(): UseWebSocketReturn {
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [connectionCount, setConnectionCount] = useState(0);
 
-    const wsRef = useRef<WebSocket | null>(null);
-    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const reconnectAttempts = useRef(0);
+    useEffect(() => {
+        let disposed = false;
+        let ws: WebSocket | null = null;
+        let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+        let attempts = 0;
 
-    const connect = useCallback(() => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-        try {
-            const ws = new WebSocket(WS_URL);
-            wsRef.current = ws;
+        function connect() {
+            if (disposed || (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING))) return;
+            ws = new WebSocket(WS_URL);
 
             ws.onopen = () => {
                 console.log('🔌 WebSocket connected');
                 setIsConnected(true);
-                reconnectAttempts.current = 0;
+                attempts = 0;
                 setConnectionCount(prev => prev + 1);
             };
 
@@ -95,15 +94,16 @@ export function useWebSocket(): UseWebSocketReturn {
             };
 
             ws.onclose = () => {
+                if (disposed) return;
                 console.log('🔌 WebSocket disconnected');
                 setIsConnected(false);
 
                 // Reconnect with exponential backoff
-                const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-                reconnectAttempts.current++;
+                const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
+                attempts++;
 
-                reconnectTimeoutRef.current = setTimeout(() => {
-                    console.log(`🔄 Reconnecting... (attempt ${reconnectAttempts.current})`);
+                reconnectTimer = setTimeout(() => {
+                    console.log(`🔄 Reconnecting... (attempt ${attempts})`);
                     connect();
                 }, delay);
             };
@@ -112,31 +112,25 @@ export function useWebSocket(): UseWebSocketReturn {
                 console.error('WebSocket error:', error);
             };
 
-        } catch (err) {
-            console.error('WebSocket connection error:', err);
         }
-    }, []);
 
-    useEffect(() => {
         connect();
-
-        // Heartbeat to keep connection alive
         const heartbeat = setInterval(() => {
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({ type: 'ping' }));
-            }
+            if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' }));
         }, 30000);
-
         return () => {
+            disposed = true;
             clearInterval(heartbeat);
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-            }
-            if (wsRef.current) {
-                wsRef.current.close();
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            if (ws) {
+                ws.onopen = null;
+                ws.onmessage = null;
+                ws.onclose = null;
+                ws.onerror = null;
+                ws.close();
             }
         };
-    }, [connect]);
+    }, []);
 
     return {
         isConnected,

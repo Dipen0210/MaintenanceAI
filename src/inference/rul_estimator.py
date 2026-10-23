@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 # Import model architecture
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from src.models.rul_predictor import RULPredictor
+from src.models.rul_predictor import RULPredictor, TransformerRUL
 
 
 class RULEstimator:
@@ -54,14 +54,22 @@ class RULEstimator:
                 self.scaler.mean_ = np.array(checkpoint['scaler_mean'])
                 self.scaler.scale_ = np.array(checkpoint['scaler_scale'])
             
-            self.model = RULPredictor(
-                input_size=input_size,
-                hidden_size=hidden_size,
-                num_layers=num_layers
-            )
+            state = checkpoint['model_state_dict']
+            if 'input_proj.weight' in state:
+                self.model = TransformerRUL(
+                    input_size=input_size,
+                    d_model=checkpoint['d_model'],
+                    n_heads=checkpoint['n_heads'],
+                    n_layers=checkpoint['n_layers'],
+                    d_ff=state['transformer.layers.0.linear1.weight'].shape[0],
+                )
+            else:
+                self.model = RULPredictor(input_size, hidden_size, num_layers)
+            self.input_size = input_size
             self.model.load_state_dict(checkpoint['model_state_dict'])
         else:
             # Fallback: assume default architecture
+            self.input_size = 17
             self.model = RULPredictor(input_size=17)
             self.model.load_state_dict(checkpoint)
         
@@ -75,22 +83,18 @@ class RULEstimator:
         Args:
             sequence: Shape (seq_len, n_features) or (n_features,) for single timestep
         """
-        # Handle single timestep
-        if sequence.ndim == 1:
-            sequence = sequence.reshape(1, -1)
-        
-        # Pad or trim to sequence_length
-        if len(sequence) < self.sequence_length:
-            pad_length = self.sequence_length - len(sequence)
-            padding = np.zeros((pad_length, sequence.shape[1]))
-            sequence = np.vstack([padding, sequence])
-        elif len(sequence) > self.sequence_length:
-            sequence = sequence[-self.sequence_length:]
-        
-        # Apply scaler if available
+        sequence = np.asarray(sequence, dtype=np.float64)
+        if sequence.ndim != 2 or not len(sequence) or sequence.shape[1] != self.input_size:
+            raise ValueError(f"Expected nonempty [timesteps, {self.input_size}] sequence")
+        if len(sequence) > 10000 or not np.isfinite(sequence).all():
+            raise ValueError("Sequence must contain at most 10000 finite timesteps")
+        sequence = sequence[-self.sequence_length:]
         if self.scaler is not None:
             sequence = self.scaler.transform(sequence)
-        
+        # Training evaluation pads normalized features, not raw measurements.
+        if len(sequence) < self.sequence_length:
+            sequence = np.pad(sequence, ((self.sequence_length - len(sequence), 0), (0, 0)))
+
         # Convert to tensor: [1, seq_len, n_features]
         tensor = torch.tensor(sequence, dtype=torch.float32)
         tensor = tensor.unsqueeze(0)
@@ -114,6 +118,8 @@ class RULEstimator:
         with torch.no_grad():
             rul_pred = self.model(tensor)
         
+        if not torch.isfinite(rul_pred).all():
+            raise ValueError("Model produced a non-finite prediction")
         rul_cycles = max(0, rul_pred.item())  # Ensure non-negative
         
         # Calculate health score (0-1, where 1 is healthy)
@@ -122,16 +128,16 @@ class RULEstimator:
         # Determine status and recommendation
         if rul_cycles > 100:
             status = 'HEALTHY'
-            recommendation = 'Continue normal operation. Schedule routine maintenance.'
+            recommendation = 'Review this dataset-specific estimate with a qualified engineer; it does not authorize operation.'
         elif rul_cycles > 50:
             status = 'WARNING'
             recommendation = 'Plan maintenance within the next maintenance window.'
         elif rul_cycles > 20:
             status = 'CRITICAL'
-            recommendation = 'Schedule immediate maintenance. Reduce operational load if possible.'
+            recommendation = 'Request urgent human maintenance review under approved site procedures.'
         else:
             status = 'IMMINENT_FAILURE'
-            recommendation = 'STOP operation immediately. Perform emergency maintenance.'
+            recommendation = 'Escalate immediately to qualified personnel under approved site procedures.'
         
         return {
             'rul_cycles': round(rul_cycles, 1),

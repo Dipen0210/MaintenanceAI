@@ -1,0 +1,7 @@
+CREATE TABLE planning_configs(id TEXT PRIMARY KEY, plant_id TEXT NOT NULL REFERENCES plants(id), config TEXT NOT NULL, actor_id TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL, active INTEGER NOT NULL CHECK(active IN(0,1)));
+CREATE UNIQUE INDEX planning_config_active ON planning_configs(plant_id) WHERE active=1;
+CREATE TABLE work_orders(id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES assets(id), created_by TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN('draft','approved','rejected','scheduled')), content TEXT NOT NULL, reviewed_by TEXT REFERENCES users(id), reviewed_at TEXT, review_reason TEXT);
+CREATE INDEX work_orders_asset ON work_orders(asset_id,created_at);
+CREATE TABLE schedule_proposals(id TEXT PRIMARY KEY, plant_id TEXT NOT NULL REFERENCES plants(id), created_by TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL, config_id TEXT NOT NULL REFERENCES planning_configs(id), snapshot TEXT NOT NULL, result TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN('pending','approved','rejected')), reviewed_by TEXT REFERENCES users(id), reviewed_at TEXT, review_reason TEXT);
+CREATE TABLE schedule_assignments(id TEXT PRIMARY KEY, proposal_id TEXT NOT NULL REFERENCES schedule_proposals(id), work_order_id TEXT NOT NULL UNIQUE REFERENCES work_orders(id), asset_id TEXT NOT NULL REFERENCES assets(id), start_utc TEXT NOT NULL, end_utc TEXT NOT NULL, technician_ids TEXT NOT NULL, parts TEXT NOT NULL);
+CREATE INDEX schedule_assignment_time ON schedule_assignments(start_utc,end_utc);

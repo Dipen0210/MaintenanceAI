@@ -1,0 +1,20 @@
+{
+  "dataset_sha256": "1a76430da9967f13de37cd20fcd17e3e983ac866c32ea2ef7890127de8008639",
+  "count": 3680,
+  "split": "Legacy training partition; random_state=42, stratified 80%. Recording independence remains unverified.",
+  "features": [
+    "rms",
+    "crest_factor",
+    "kurtosis"
+  ],
+  "mean": [
+    0.334969928003962,
+    3.8295819426575686,
+    4.820361567606262
+  ],
+  "std": [
+    0.3100436271120667,
+    0.9170195826303721,
+    2.9123848582773166
+  ]
+}

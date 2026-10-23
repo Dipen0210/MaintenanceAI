@@ -1,0 +1,2 @@
+CREATE TABLE simulation_controls(plant_id TEXT PRIMARY KEY REFERENCES plants(id), enabled INTEGER NOT NULL CHECK(enabled IN (0,1)), updated_at TEXT NOT NULL, actor_id TEXT NOT NULL REFERENCES users(id));
+CREATE TABLE gateway_credentials(source_id TEXT PRIMARY KEY REFERENCES sources(id), token_hash TEXT NOT NULL UNIQUE, owner_id TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL, expires_at TEXT NOT NULL, revoked INTEGER NOT NULL DEFAULT 0 CHECK(revoked IN (0,1)));

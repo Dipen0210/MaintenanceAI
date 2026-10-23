@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { HealthGauge, StatCard, MachineCard, CircularProgress, MaintenanceItem } from '@/components/Dashboard';
+import { StatCard, MachineCard, CircularProgress, MaintenanceItem } from '@/components/Dashboard';
 import { apiClient, MachineStatus, PlantArea, MaintenanceRecommendation } from '@/lib/api';
 
 export default function AreaDetailPage() {
@@ -13,10 +13,12 @@ export default function AreaDetailPage() {
     const [area, setArea] = useState<PlantArea | null>(null);
     const [machines, setMachines] = useState<MachineStatus[]>([]);
     const [maintenanceQueue, setMaintenanceQueue] = useState<MaintenanceRecommendation[]>([]);
+    const [error, setError] = useState<string | null>(null);
     const [isLive, setIsLive] = useState(false);
     const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
     useEffect(() => {
+        let active = true;
         const fetchData = async () => {
             try {
                 const [areas, allMachines, queue] = await Promise.all([
@@ -25,6 +27,8 @@ export default function AreaDetailPage() {
                     apiClient.getMaintenanceQueue(),
                 ]);
 
+                if (!active) return;
+                setError(areas[areaId] ? null : 'Area not found');
                 setArea(areas[areaId] || null);
                 setMachines(allMachines.filter(m => m.area === areaId));
                 setMaintenanceQueue(queue.filter(q => {
@@ -34,13 +38,15 @@ export default function AreaDetailPage() {
                 setIsLive(true);
                 setLastUpdate(new Date());
             } catch {
+                if (!active) return;
+                setError('Area data unavailable');
                 setIsLive(false);
             }
         };
 
         fetchData();
         const interval = setInterval(fetchData, 5000);
-        return () => clearInterval(interval);
+        return () => { active = false; clearInterval(interval); };
     }, [areaId]);
 
     // Calculate area stats
@@ -51,8 +57,8 @@ export default function AreaDetailPage() {
         const avgHealth = machines.length > 0
             ? machines.reduce((sum, m) => sum + m.health_score, 0) / machines.length
             : 1;
-        const avgRul = machines.filter(m => m.rul_cycles).length > 0
-            ? machines.filter(m => m.rul_cycles).reduce((sum, m) => sum + (m.rul_cycles || 0), 0) / machines.filter(m => m.rul_cycles).length
+        const avgRul = machines.filter(m => m.rul_cycles !== null).length > 0
+            ? machines.filter(m => m.rul_cycles !== null).reduce((sum, m) => sum + (m.rul_cycles || 0), 0) / machines.filter(m => m.rul_cycles !== null).length
             : 0;
 
         return { healthy, warning, critical, avgHealth, avgRul };
@@ -62,12 +68,12 @@ export default function AreaDetailPage() {
         return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     };
 
-    if (!area) {
+    if (error || !area) {
         return (
             <div className="min-h-screen gradient-bg flex items-center justify-center">
                 <div className="glass rounded-2xl p-8 flex items-center gap-4">
                     <div className="animate-spin rounded-full h-8 w-8 border-2 border-t-blue-500 border-white/20" />
-                    <span className="text-gray-400">Loading area...</span>
+                    <span className="text-gray-400">{error || 'Loading area...'}</span>
                 </div>
             </div>
         );
@@ -85,7 +91,7 @@ export default function AreaDetailPage() {
             <header className="relative z-20 border-b border-white/5 glass-strong sticky top-0">
                 <div className="max-w-7xl mx-auto px-6 py-4">
                     <div className="flex items-center gap-4">
-                        <Link href="/" className="p-2.5 rounded-xl glass hover:bg-white/10 transition-colors">
+                        <Link href="/legacy" className="p-2.5 rounded-xl glass hover:bg-white/10 transition-colors">
                             <span className="text-gray-400">← Back</span>
                         </Link>
                         <div className="flex items-center gap-3 flex-1">
@@ -104,7 +110,7 @@ export default function AreaDetailPage() {
                                 ${isLive ? 'ring-1 ring-emerald-500/30' : 'ring-1 ring-amber-500/30'}`}>
                                 <span className={`status-dot ${isLive ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                                 <span className={`text-sm font-medium ${isLive ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                    {isLive ? 'Live' : 'Demo'}
+                                    {isLive ? 'Simulation connected' : 'Disconnected'}
                                 </span>
                             </div>
                         </div>

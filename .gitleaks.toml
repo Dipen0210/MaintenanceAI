@@ -1,0 +1,19 @@
+title = "MaintenanceAI public source secret scanning"
+
+[extend]
+useDefault = true
+
+# Verified SHA-256 checksums of local pinned tokenizer files, not credentials.
+# Match both this exact manifest path and these exact digest values only.
+[[allowlists]]
+description = "Pinned tokenizer artifact checksums verified against the actual files"
+condition = "AND"
+paths = ['''(^|/)models/language-models\.json$''']
+regexTarget = "secret"
+regexes = [
+  '''^acb92769e8195aabd29b7b2137a9e6d6e25c476a4f15aa4355c233426c61576b$''',
+  '''^303df45a03609e4ead04bc3dc1536d0ab19b5358db685b6f3da123d05ec200e3$''',
+  '''^be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037$''',
+  '''^d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101$''',
+  '''^aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4$''',
+]

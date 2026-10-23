@@ -1,0 +1,102 @@
+{
+  "suite": "risk-scenarios-v1",
+  "scenario_sha256": "9b2124e23fba661ea125db03b50874f697344eb0f225e8a7a68ff1e851ea0b3b",
+  "scope": "Authored synthetic software scenarios, not expert-certified industrial outcomes. Model fields are explicit test fixtures; actual trained inference is covered separately.",
+  "policy": {
+    "name": "Demo risk policy v1",
+    "safety_weight": 0.4,
+    "production_weight": 0.3,
+    "maintenance_weight": 0.15,
+    "damage_weight": 0.15,
+    "critical_score": 85,
+    "high_score": 50,
+    "planned_score": 25,
+    "prediction_max_age_seconds": 60,
+    "reason": "Initial explicitly simulated site policy"
+  },
+  "cases": 8,
+  "failures": [],
+  "comparisons": {
+    "first_come_first_served": {
+      "order": [
+        "ancillary-nuisance",
+        "production-bottleneck",
+        "critical-heat"
+      ],
+      "correct_pair_fraction": 0.0
+    },
+    "anomaly_only": {
+      "order": [
+        "ancillary-nuisance",
+        "production-bottleneck",
+        "critical-heat"
+      ],
+      "correct_pair_fraction": 0.0
+    },
+    "fixed_rule": {
+      "order": [
+        "critical-heat",
+        "ancillary-nuisance",
+        "production-bottleneck"
+      ],
+      "correct_pair_fraction": 0.6666666666666666
+    },
+    "risk_based": {
+      "order": [
+        "critical-heat",
+        "production-bottleneck",
+        "ancillary-nuisance"
+      ],
+      "correct_pair_fraction": 1.0
+    }
+  },
+  "elapsed_ms": 0.28070900589227676,
+  "results": {
+    "critical-heat": {
+      "priority": "Critical review required",
+      "score": 88.0,
+      "missing_evidence": []
+    },
+    "production-bottleneck": {
+      "priority": "High priority",
+      "score": 83.42,
+      "missing_evidence": []
+    },
+    "ancillary-nuisance": {
+      "priority": "Planned maintenance",
+      "score": 20.0,
+      "missing_evidence": []
+    },
+    "healthy-critical": {
+      "priority": "Monitor",
+      "score": 0.0,
+      "missing_evidence": []
+    },
+    "missing-temperature": {
+      "priority": "Insufficient evidence",
+      "score": null,
+      "missing_evidence": [
+        "temperature: stale"
+      ]
+    },
+    "stale-sensors": {
+      "priority": "Insufficient evidence",
+      "score": null,
+      "missing_evidence": [
+        "temperature: stale",
+        "vibration_rms: stale",
+        "current: stale"
+      ]
+    },
+    "conflicting-normal-model": {
+      "priority": "Critical review required",
+      "score": 80.0,
+      "missing_evidence": []
+    },
+    "moderate-telemetry-only": {
+      "priority": "Planned maintenance",
+      "score": 35.78,
+      "missing_evidence": []
+    }
+  }
+}

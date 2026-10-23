@@ -1,0 +1,11 @@
+{
+  "purpose": "One-epoch actual notebook integration check; not a deployment model",
+  "train_engines": 80,
+  "validation_engines": 20,
+  "test_engines": 100,
+  "epochs": 1,
+  "seed": 42,
+  "test_rmse_cycles": 83.31240141660929,
+  "split_disjoint": true,
+  "runtime_reload_verified": true
+}

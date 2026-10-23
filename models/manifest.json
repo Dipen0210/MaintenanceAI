@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "artifacts": [
+    {
+      "filename": "audio_iforest_v1_fan.joblib",
+      "sha256": "a0a33800257f574076e595ffa89b6a464abe9976a0d3b2a49f4c201ee053f7a0",
+      "bytes": 5878578,
+      "provenance": "Trained on local MIMII data by scripts/train_audio.py; see recording hashes and held-out metrics",
+      "purpose": "MIMII anomaly detection"
+    },
+    {
+      "filename": "audio_iforest_v1_pump.joblib",
+      "sha256": "ac7231f84d5229b2f1744c4d673f1047b05f0718dca90cc0dc0cc14f7b377b10",
+      "bytes": 5986586,
+      "provenance": "Trained on local MIMII data by scripts/train_audio.py; see recording hashes and held-out metrics",
+      "purpose": "MIMII anomaly detection"
+    },
+    {
+      "filename": "audio_iforest_v1_valve.joblib",
+      "sha256": "8baa4b3f41040b8076cef276b9a9d269adb5c6949c3a91c6649712a301d1b248",
+      "bytes": 6057314,
+      "provenance": "Trained on local MIMII data by scripts/train_audio.py; see recording hashes and held-out metrics",
+      "purpose": "MIMII anomaly detection"
+    },
+    {
+      "filename": "rul_predictor_FD001.pth",
+      "sha256": "8b23a21b6d6b04554a822ce8779a316b640468705b3a7d11da96990709b8a39e",
+      "bytes": 1381435,
+      "provenance": "Existing user-supplied local checkpoint; training provenance partially documented in notebooks",
+      "purpose": "NASA C-MAPSS turbofan RUL"
+    },
+    {
+      "filename": "rul_predictor_FD002.pth",
+      "sha256": "2dfdda93305effb1848630e65f4858be0ee0ed0cdb5b6211a6cc4491c5edc8d6",
+      "bytes": 1381435,
+      "provenance": "Existing user-supplied local checkpoint; training provenance partially documented in notebooks",
+      "purpose": "NASA C-MAPSS turbofan RUL"
+    },
+    {
+      "filename": "rul_predictor_FD003.pth",
+      "sha256": "f8279e4e930126d82491f2c515f3c268ce3d9ce6f36b8a2071f28c91d891bc91",
+      "bytes": 1381435,
+      "provenance": "Existing user-supplied local checkpoint; training provenance partially documented in notebooks",
+      "purpose": "NASA C-MAPSS turbofan RUL"
+    },
+    {
+      "filename": "rul_predictor_FD004.pth",
+      "sha256": "d785d2fa965725ae4f569a692d80b913586b4d2f79e8f6f6e189ef77bfc97dfb",
+      "bytes": 1381435,
+      "provenance": "Existing user-supplied local checkpoint; training provenance partially documented in notebooks",
+      "purpose": "NASA C-MAPSS turbofan RUL"
+    },
+    {
+      "filename": "rul_transformer_FD001.pth",
+      "sha256": "40a79dc7de8bbb7affe59b3eccf17a3f3075b54f65ea18bac95d43e4d9cb8164",
+      "bytes": 559078,
+      "provenance": "Existing user-supplied local checkpoint; training provenance partially documented in notebooks",
+      "purpose": "NASA C-MAPSS turbofan RUL"
+    },
+    {
+      "filename": "rul_transformer_FD002.pth",
+      "sha256": "b0f5c5cc57c4b91b3fc3968634f836de3b4d0b75f7ffd9cf9f30aee14a079382",
+      "bytes": 559078,
+      "provenance": "Existing user-supplied local checkpoint; training provenance partially documented in notebooks",
+      "purpose": "NASA C-MAPSS turbofan RUL"
+    },
+    {
+      "filename": "rul_transformer_FD003.pth",
+      "sha256": "f2ab5302cbf799c799ab014180c3a0bfd75f75bcb8211db6eb415048d792a869",
+      "bytes": 559078,
+      "provenance": "Existing user-supplied local checkpoint; training provenance partially documented in notebooks",
+      "purpose": "NASA C-MAPSS turbofan RUL"
+    },
+    {
+      "filename": "rul_transformer_FD004.pth",
+      "sha256": "059baae03b47fb4d70af69e45aef64a19e30a42a59c352d5028a180454612983",
+      "bytes": 559078,
+      "provenance": "Existing user-supplied local checkpoint; training provenance partially documented in notebooks",
+      "purpose": "NASA C-MAPSS turbofan RUL"
+    },
+    {
+      "filename": "vibration_classifier.pth",
+      "sha256": "b1b33c87c8c37393ef09ec254bd26c6ba1ad1d212a2bda0454723b851698e676",
+      "bytes": 1707569,
+      "provenance": "Existing user-supplied local checkpoint; training provenance partially documented in notebooks",
+      "purpose": "CWRU bearing classification"
+    }
+  ]
+}

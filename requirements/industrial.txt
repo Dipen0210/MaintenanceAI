@@ -1,0 +1,3 @@
+-r dev.txt
+# Optional read-only integration gateway and local protocol verification
+asyncua>=1.1.0,<3
