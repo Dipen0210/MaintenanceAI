@@ -49,6 +49,9 @@ def resolve(conn,user,asset_id,evidence_id):
         parts.append(result['limitations'])
         return {**base,'title':result['family'],'text':' '.join(parts),'model_version':result['model_version'],'timestamp_utc':row['timestamp_utc'],'role':'prediction',
                 'fault_class':output.get('fault_class'),'is_anomaly':output.get('is_anomaly',False)}
+    if kind=='inspection':
+        from backend.inspections.service import evidence
+        return {**base,**evidence(conn,user,asset_id,rid)}
     if kind=='maintenance':
         row=conn.execute('SELECT * FROM maintenance_records WHERE id=? AND asset_id=?',(rid,asset_id)).fetchone()
         if not row:raise HTTPException(404,'Evidence not found')

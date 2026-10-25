@@ -398,4 +398,6 @@ from backend.routes.asset_access import router as asset_access_router
 app.include_router(preventive_router)
 from backend.routes.meters import router as meters_router
 app.include_router(meters_router)
+from backend.routes.inspections import router as inspections_router
+app.include_router(inspections_router)
 app.include_router(asset_access_router)

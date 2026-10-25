@@ -162,4 +162,6 @@ def my_work(user=Depends(principal)):
                 item=order(conn,user,row[0])
                 if item['status']!='completed':result.append(item)
             except HTTPException:continue
-    return {'issues':[i for i in issues(mine=True,user=user) if i['status']!='closed'],'work_orders':result}
+    from backend.routes.inspections import runs
+    rounds=[r for r in runs(mine=True,user=user) if r['status'] not in ['completed','completed_with_skips','cancelled']]
+    return {'issues':[i for i in issues(mine=True,user=user) if i['status']!='closed'],'work_orders':result,'inspection_rounds':rounds}

@@ -21,6 +21,7 @@ def manifest(mode='tools_rag'):
     sources+=['backend/routes/machines.py','backend/routes/simulation.py','backend/ingestion/condition.py','backend/ingestion/adapters.py','scripts/opcua_gateway.py']
     sources+=['backend/preventive/service.py','backend/preventive/calendar.py','backend/preventive/contracts.py']
     sources+=['backend/preventive/meters.py','backend/routes/meters.py']
+    sources+=['backend/inspections/service.py','backend/routes/inspections.py']
     sources+=['backend/core/workspaces.py','backend/routes/issues.py']
     sources+=['backend/routes/administration.py','backend/core/demo.py','backend/routes/ml.py','backend/ml/registry.py']
     languages=json.loads((ROOT/'models/language-models.json').read_text())

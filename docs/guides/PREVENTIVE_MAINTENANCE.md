@@ -1,6 +1,6 @@
-# Preventive maintenance
+# Preventive maintenance and field inspections
 
-Open **Preventive plans** in the Operations workspace. Its views are **Calendar plans** and **Meter plans**. All views retain the current Demo or Plant context and backend equipment/document permissions.
+Open **Preventive plans** in the Operations workspace. Its views are **Calendar plans**, **Meter plans** and **Inspection rounds**. All views retain the current Demo or Plant context and backend equipment/document permissions.
 
 ## Calendar plans
 
@@ -20,6 +20,16 @@ Meter identity, first threshold and interval are immutable after creation. Revis
 
 A decreasing counter blocks generation. A manager must review the exact blocked sample and record either a **reset/replacement** with an explicitly confirmed cumulative total, or a **rollover** with the counter's verified modulus. Reset totals cannot reduce the previous accepted total. Version checks prevent conflicting reviews. The offset and reconciliation history remain visible; neither establishes physical condition. Stale, missing or invalid readings, disabled owners and revoked references/access block generation.
 
+## Inspection rounds
+
+A maintenance manager creates a versioned ordered checklist with up to 20 checks. Each check names a machine and approved references, and uses either pass/fail or a numeric measurement with units and accepted limits. Every saved result needs evidence notes. A skipped check needs a reason and cannot claim a measurement.
+
+The manager assigns a template version and due date to an enabled engineer with access to every machine and reference. It appears in **My Work**. An assignment does not approve corrective work or downtime. The engineer confirms site clearance for the inspection scope, starts the round, then records or explicitly skips each check in order. Saved results persist across reloads. Template revisions do not alter already assigned rounds.
+
+An out-of-range measurement or failed check creates one linked issue for triage. Repeated saves do not duplicate it. Correcting a reading preserves its earlier audit record and leaves the issue open for explicit follow-up. Add photos through the existing linked-issue workflow. Observations and their source events can be cited by Copilot, with current access checks and historical context. **Ask Copilot about this machine** selects that check's machine context.
+
+Completion requires all checks to be recorded or skipped. A round with skipped checks is visibly **completed with skips**. Completed and cancelled records are immutable; assign a new round for follow-up. A manager can cancel an open round with a reason. Inspection completion does not clear sensor alerts, confirm repairs or establish machine health.
+
 ## Current boundaries
 
-This is a local, online workflow with bounded generation/history lists. It does not yet include offline synchronization, inspection rounds, automatic holiday/shutdown policies, external operations handovers or notification escalation. Gateway delivery/commissioning and industrial diagnostic accuracy need separate validation. Qualified Copilot review remains deferred; software tests and synthetic examples are not factory acceptance evidence.
+This is a local, online workflow with bounded generation/history lists. It does not yet include offline synchronization, recurring assignment of inspection rounds, required per-check photo uploads, automatic holiday/shutdown policies, external operations handovers or notification escalation. Gateway delivery/commissioning and industrial diagnostic accuracy need separate validation. Qualified Copilot review remains deferred; software tests and synthetic examples are not factory acceptance evidence.

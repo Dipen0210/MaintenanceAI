@@ -10,6 +10,7 @@ from backend.copilot.records import records
 from backend.copilot.documents import search
 from backend.copilot.contracts import ToolArguments
 from backend.scheduling.service import internal_records
+from backend.inspections.service import records as inspection_records
 
 TOOLS=frozenset(['get_asset_details','get_latest_telemetry','get_sensor_trends','get_recent_alarms','get_model_predictions',
                  'get_fault_history','search_approved_manuals','get_existing_work_orders','get_asset_risk','get_maintenance_schedule','draft_investigation_report'])
@@ -33,7 +34,7 @@ def invoke(name,arguments,user,trace=None):
                 result=[dict(r) for r in conn.execute('''SELECT a.* FROM alarms a JOIN source_grants g ON a.source=g.source_id
                          WHERE a.asset_id=? AND g.user_id=? ORDER BY a.timestamp_utc DESC LIMIT ?''',(args.asset_id,user['id'],args.limit))]
             elif name=='get_model_predictions':result=history(conn,user,args.asset_id,args.limit)
-            elif name=='get_fault_history':result=records(conn,user,args.asset_id,['fault','inspection'],args.limit)
+            elif name=='get_fault_history':result=sorted(inspection_records(conn,user,args.asset_id,args.limit)+records(conn,user,args.asset_id,['fault','inspection'],args.limit),key=lambda r:r['timestamp_utc'],reverse=True)[:args.limit]
             elif name=='get_existing_work_orders':result=(internal_records(conn,user,args.asset_id,'work_order',args.limit)+records(conn,user,args.asset_id,['work_order'],args.limit))[:args.limit]
             elif name=='get_maintenance_schedule':result=(internal_records(conn,user,args.asset_id,'schedule',args.limit)+records(conn,user,args.asset_id,['schedule'],args.limit))[:args.limit]
             elif name=='get_asset_risk':result=latest_risk(conn,user,args.asset_id)
