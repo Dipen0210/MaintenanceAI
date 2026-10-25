@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from fastapi import HTTPException
 from backend.core.database import transaction,identifier,iso,utcnow,audit
+from backend.core.workspaces import asset_workspace
 from backend.core.security import authorize_asset,authorize_source,allowed_assets
 from backend.copilot.documents import authorize_document
 from backend.copilot.safety import quarantine_reason
@@ -32,7 +33,7 @@ def order(conn,user,wid):
     if not row:raise HTTPException(404,'Work order not found or not authorized')
     authorize_asset(conn,user,row['asset_id'])
     value=dict(row);value['content']=json.loads(row['content']);data=value['content']
-    for source in data['risk_snapshot']['source_ids']:authorize_source(conn,user,source)
+    for source in (data.get('risk_snapshot') or {}).get('source_ids',[]):authorize_source(conn,user,source)
     for dep in data['dependencies']:
         prior=conn.execute('SELECT asset_id FROM work_orders WHERE id=?',(dep,)).fetchone()
         if not prior:raise HTTPException(404,'Dependency unavailable')
@@ -83,7 +84,7 @@ def create_draft(body,user):
         if body.due_at<=utcnow():raise HTTPException(422,'New work requires a future due time')
         mode=conn.execute('SELECT mode FROM plants WHERE id=?',(asset['plant_id'],)).fetchone()[0]
         data={**body.model_dump(mode='json'),'priority':risk['priority'],'risk_snapshot':risk,'procedures':refs,
-              'simulation_only':mode=='simulation','safety':'Draft scope only. A qualified person must confirm site isolation, permits and approved procedures before any physical work. Schedule approval does not operate equipment.'}
+              'simulation_only':mode=='simulation' and asset_workspace(conn,body.asset_id)=='demo','safety':'Draft scope only. A qualified person must confirm site isolation, permits and approved procedures before any physical work. Schedule approval does not operate equipment.'}
         wid=identifier();conn.execute('INSERT INTO work_orders VALUES(?,?,?,?,?,?,NULL,NULL,NULL)',
                                      (wid,body.asset_id,user['id'],iso(),'draft',json.dumps(data)))
         audit(conn,user,'draft_work_order',wid,'Evidence-linked draft; no resources reserved')
@@ -117,6 +118,10 @@ def read_config(user):
 def save_config(body,user):
     with transaction() as conn:
         conn.execute('BEGIN IMMEDIATE');role(conn,user,['administrator','maintenance_manager'])
+        from backend.routes.issues import eligible
+        identities={u['id'] for u in eligible(conn,user)}
+        mapped=[t.user_id for t in body.technicians if t.user_id]
+        if len(mapped)!=len(set(mapped)) or any(uid not in identities for uid in mapped):raise HTTPException(422,'Map each enabled engineer to at most one technician resource')
         assets={r['id'] for r in conn.execute('SELECT id FROM assets WHERE plant_id=?',(user['plant_id'],))}
         if assets!={a['id'] for a in allowed_assets(conn,user)}:raise HTTPException(403,'Whole-plant configuration requires access to every plant asset')
         for row in [*body.equipment_windows,*body.blackouts]:authorize_asset(conn,user,row.asset_id)
@@ -157,6 +162,7 @@ def propose(body,user):
     with transaction() as conn:
         role(conn,user,['administrator','engineer','reliability_engineer','maintenance_manager'])
         config=active_config(conn,user);orders=[order(conn,user,wid) for wid in body.work_order_ids]
+        if config['config']['simulation_only'] and any(not w['content']['simulation_only'] for w in orders):raise HTTPException(409,'Physical maintenance requires commissioned plant planning resources, not demo resources')
         if any(w['status']!='approved' for w in orders):raise HTTPException(409,'Every candidate must have maintenance manager approval')
         snapshot=dict(config=config['config'],orders=orders,existing=reservations(conn,user['plant_id']),
                       start_utc=iso(body.start_utc),end_utc=iso(body.end_utc))
@@ -190,6 +196,18 @@ def review_proposal(pid,body,user):
             snapshot['existing']=reservations(conn,user['plant_id'])
             issues=validate(assignments,snapshot)
             if issues:raise HTTPException(409,'Resources changed; generate a new proposal. '+ '; '.join(issues))
+            # Validate and freeze named users from the exact approved resource snapshot.
+            technicians={t['id']:t for t in snapshot['config']['technicians']}
+            bindings=[]
+            for a in assignments:
+                for tid in a['technician_ids']:
+                    uid=technicians[tid].get('user_id')
+                    if not uid:continue
+                    person=conn.execute("SELECT id,username,role,plant_id FROM users WHERE id=? AND enabled=1 AND role IN('engineer','reliability_engineer') AND plant_id=?",(uid,user['plant_id'])).fetchone()
+                    if not person:raise HTTPException(409,'Assigned technician identity is no longer available; revise resources')
+                    order(conn,dict(person),a['work_order_id'])
+                    bindings.append((a['work_order_id'],tid,uid,user['id'],iso()))
+            conn.executemany('INSERT INTO work_user_assignments VALUES(?,?,?,?,?)',bindings)
             for a in assignments:
                 conn.execute('INSERT INTO schedule_assignments VALUES(?,?,?,?,?,?,?,?)',(identifier(),pid,a['work_order_id'],a['asset_id'],a['start_utc'],a['end_utc'],json.dumps(a['technician_ids']),json.dumps(a['parts'])))
                 conn.execute("UPDATE work_orders SET status='scheduled' WHERE id=?",(a['work_order_id'],))

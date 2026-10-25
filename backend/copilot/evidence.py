@@ -65,7 +65,9 @@ def resolve(conn,user,asset_id,evidence_id):
         work=order(conn,user,rid)
         if work['asset_id']!=asset_id:raise HTTPException(404,'Work-order evidence not found')
         updates=' '.join(f'Human record by {e["actor_id"]} at {e["created_at"]}: {e["action"]}; {e["notes"]}' for e in work['execution']['events'][-5:])
-        return {**base,'title':'Work order '+work['id'],'text':f'{work["content"]["title"]}. Status: {work["status"]}. Reviewed risk priority: {work["content"]["priority"]}, assessed at {work["content"]["risk_snapshot"]["timestamp_utc"]}. Scope: {work["content"]["task"]}. Physical work remains subject to site safety approval. '+updates+' Work completion records do not establish current equipment health or clear sensor alarms.',
+        risk=work['content'].get('risk_snapshot')
+        basis=f'Reviewed risk priority: {work["content"]["priority"]}, assessed at {risk["timestamp_utc"]}.' if risk else 'Calendar preventive task. No condition-based risk assessment is implied.'
+        return {**base,'title':'Work order '+work['id'],'text':f'{work["content"]["title"]}. Status: {work["status"]}. {basis} Scope: {work["content"]["task"]}. Physical work remains subject to site safety approval. '+updates+' Work completion records do not establish current equipment health or clear sensor alarms.',
                 'timestamp_utc':work['execution']['updated_at'] or work['created_at'],'role':'history'}
     if kind=='risk':
         row=conn.execute('SELECT * FROM risk_assessments WHERE id=? AND asset_id=?',(rid,asset_id)).fetchone()

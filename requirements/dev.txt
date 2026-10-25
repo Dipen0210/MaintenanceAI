@@ -1,3 +1,6 @@
 -r ../requirements.txt
 pytest>=9.0,<10
 httpx>=0.28,<0.29
+
+# Decode generated labels in regression tests
+zxing-cpp==2.3.0

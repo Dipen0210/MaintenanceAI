@@ -7,7 +7,7 @@ from pydantic import BaseModel,FiniteFloat
 class UserResponse(BaseModel):
     id:str
     username:str
-    role:Literal['administrator','engineer','maintenance_manager','reliability_engineer']
+    role:Literal['administrator','engineer','maintenance_manager','reliability_engineer','operator']
     plant_id:str
 
 

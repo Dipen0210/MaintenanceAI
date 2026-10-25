@@ -48,7 +48,12 @@ def principal(request:Request):
             JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=? AND s.expires_at>? AND u.enabled=1''',
             (hashlib.sha256(token.encode()).hexdigest(),iso())).fetchone()
         if not user:raise HTTPException(401,'Session expired or revoked')
-        return dict(user)
+        result=dict(user)
+        from backend.core.workspaces import parse_workspace
+        workspace=parse_workspace(request.headers.get('x-maintenance-workspace'))
+        # Explicit site administration/resource configuration retains whole-site scope.
+        if workspace and not request.url.path.startswith(('/api/admin/','/api/planning/config')):result['workspace']=workspace
+        return result
 
 
 def require_roles(*roles):
@@ -59,19 +64,27 @@ def require_roles(*roles):
 
 
 def allowed_assets(conn,user):
+    from backend.core.workspaces import matches_asset
     return [dict(r) for r in conn.execute('''SELECT a.* FROM assets a JOIN asset_grants g
-        ON a.id=g.asset_id WHERE g.user_id=? AND a.plant_id=? ORDER BY a.id''',(user['id'],user['plant_id']))]
+        ON a.id=g.asset_id WHERE g.user_id=? AND a.plant_id=? ORDER BY a.id''',(user['id'],user['plant_id'])) if matches_asset(conn,user,r['id'])]
 
 
 def authorize_asset(conn,user,asset_id):
     row=conn.execute('''SELECT a.* FROM assets a JOIN asset_grants g ON a.id=g.asset_id
         WHERE a.id=? AND g.user_id=? AND a.plant_id=?''',(asset_id,user['id'],user['plant_id'])).fetchone()
-    if row is None:raise HTTPException(404,'Asset not found or not authorized')
+    from backend.core.workspaces import matches_asset
+    if row is None or not matches_asset(conn,user,asset_id):raise HTTPException(404,'Asset not found or not authorized in this workspace')
     return dict(row)
 
 
 def authorize_source(conn,user,source_id):
     row=conn.execute('''SELECT s.* FROM sources s JOIN source_grants g ON s.id=g.source_id
         WHERE s.id=? AND g.user_id=? AND s.plant_id=?''',(source_id,user['id'],user['plant_id'])).fetchone()
-    if row is None:raise HTTPException(404,'Source not found or not authorized')
+    from backend.core.workspaces import matches_source
+    if row is None or not matches_source(user,row):raise HTTPException(404,'Source not found or not authorized in this workspace')
     return dict(row)
+
+
+def allowed_source_ids(conn,user):
+    from backend.core.workspaces import matches_source
+    return [r['id'] for r in conn.execute('SELECT s.* FROM sources s JOIN source_grants g ON g.source_id=s.id WHERE g.user_id=? AND s.plant_id=?',(user['id'],user['plant_id'])) if matches_source(user,r)]

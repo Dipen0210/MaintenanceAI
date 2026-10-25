@@ -44,6 +44,7 @@ There is no arrow from the language model, scheduler or application to a PLC/act
 | Copilot | MiniLM exact-vector retrieval plus Qwen3 evidence selection and backend grounding | originals, document approval, chunks/embeddings, sessions, citations, investigations |
 | LLMOps | Local trace/evaluation system equivalent; content-addressed configurations and release decisions | traces, feedback, evaluation runs, declared reviews, release records |
 | Planning | Immutable work drafts, approved candidates, bounded CP-SAT and independent validation | resource versions, proposal snapshots, manager decisions, confirmed reservations |
+| Field intake | Sensor-independent human reports, manager assignment, versioned notes, authenticated normalized photos and named personal queues | `issues`, `issue_events`, `issue_photos`, `work_user_assignments` |
 | Administration | Scoped local identities, revocation, file sources, asset/sensor contracts, audit view | transactional registry/grants and audit events |
 
 Migrations run in lexical order within a transaction. UTC timestamps and immutable identifiers are used throughout. Signal files and original documents are stored beside the configured database. A database backup alone is insufficient: preserve associated files and matching model manifests/artifacts together.

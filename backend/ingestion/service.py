@@ -5,7 +5,7 @@ import sqlite3
 from pydantic import ValidationError
 from fastapi import HTTPException
 from backend.core.database import transaction,identifier,iso,utcnow,audit
-from backend.core.security import authorize_asset,authorize_source
+from backend.core.security import authorize_asset,authorize_source,allowed_source_ids
 from backend.ingestion.contracts import TelemetryRecord
 
 
@@ -52,9 +52,10 @@ def ingest(records,user,source_id,now=None,connection=None):
 
 def latest_telemetry(conn,user,asset_id,now=None):
     authorize_asset(conn,user,asset_id);now=now or utcnow();output=[]
+    sources=allowed_source_ids(conn,user);slots=','.join('?' for _ in sources)
     for sensor in conn.execute('SELECT * FROM sensors WHERE asset_id=? ORDER BY tag_id',(asset_id,)):
-        row=conn.execute('SELECT * FROM telemetry WHERE asset_id=? AND tag_id=? AND source IN (SELECT source_id FROM source_grants WHERE user_id=?) ORDER BY timestamp_utc DESC LIMIT 1',(asset_id,sensor['tag_id'],user['id'])).fetchone()
-        event=conn.execute('SELECT status,reason FROM ingestion_events WHERE asset_id=? AND tag_id=? AND source_id IN (SELECT source_id FROM source_grants WHERE user_id=?) ORDER BY timestamp_utc DESC,rowid DESC LIMIT 1',(asset_id,sensor['tag_id'],user['id'])).fetchone()
+        row=conn.execute(f'SELECT * FROM telemetry WHERE asset_id=? AND tag_id=? AND source IN ({slots}) ORDER BY timestamp_utc DESC LIMIT 1',(asset_id,sensor['tag_id'],*sources)).fetchone()
+        event=conn.execute(f'SELECT status,reason FROM ingestion_events WHERE asset_id=? AND tag_id=? AND source_id IN ({slots}) ORDER BY timestamp_utc DESC,rowid DESC LIMIT 1',(asset_id,sensor['tag_id'],*sources)).fetchone()
         data=dict(row) if row else None
         quality='missing' if not row else row['quality']
         if row and (now-datetime.fromisoformat(row['timestamp_utc'])).total_seconds()>sensor['stale_after_seconds']:quality='stale'

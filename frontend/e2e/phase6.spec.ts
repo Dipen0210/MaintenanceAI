@@ -97,7 +97,7 @@ test('engineer investigation becomes a manager-reviewed, internally confirmed ma
  await expect(overview).toContainText('Synthetic scenario source event: bearing_impulse_like');
  // Inspect the schedule created and confirmed in this same workflow.
  await expect(overview.getByRole('link',{name:'Review vibration sensor mounting',exact:true})).toBeVisible();
- await overview.getByText('Related work orders (1)',{exact:true}).click();
+ await overview.getByText(/^Related work orders \(\d+\)$/).click();
  await expect(overview).toContainText('scheduled');
  await overview.screenshot({path:'../docs/design/screenshots/phases/phase7-operations-overview.png'});
  await page.getByRole('navigation',{name:'Primary navigation'}).getByRole('link',{name:'Assets',exact:true}).click();
@@ -127,5 +127,5 @@ test('engineer investigation becomes a manager-reviewed, internally confirmed ma
  await field.screenshot({path:'../docs/design/screenshots/field-work/field-verified-mobile.png',animations:'disabled',style:'.workspace-topbar{visibility:hidden}'});
  await page.goto('/operations');await expect(progress).toContainText('Completed');
  const upcoming=page.locator('.schedule-card');await expect(upcoming.getByText('Review vibration sensor mounting',{exact:true})).toHaveCount(0);
- await page.goto('/operations/assets/DEMO-CONVEYOR-001');await overview.getByText('Related work orders (1)',{exact:true}).click();await expect(overview).toContainText('Completed');
+ await page.goto('/operations/assets/DEMO-CONVEYOR-001');await overview.getByText(/^Related work orders \(\d+\)$/).click();await expect(overview).toContainText('Completed');
 });

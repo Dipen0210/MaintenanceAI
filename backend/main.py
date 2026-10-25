@@ -231,7 +231,14 @@ async def lifespan(app: FastAPI):
     simulation_task = asyncio.create_task(simulate_machine_updates())
     print("🔄 Simulation started (updates every 10s)")
     
-    yield
+    from backend.preventive.service import worker
+    preventive_task=asyncio.create_task(worker())
+    try:
+        yield
+    finally:
+        preventive_task.cancel()
+        try:await preventive_task
+        except asyncio.CancelledError:pass
     
     if simulation_task:
         simulation_task.cancel()
@@ -382,3 +389,11 @@ app.include_router(machines_router)
 
 from backend.routes.visuals import router as visuals_router
 app.include_router(visuals_router)
+
+from backend.routes.issues import router as issues_router
+app.include_router(issues_router)
+
+from backend.routes.preventive import router as preventive_router
+from backend.routes.asset_access import router as asset_access_router
+app.include_router(preventive_router)
+app.include_router(asset_access_router)

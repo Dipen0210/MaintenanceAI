@@ -54,7 +54,7 @@ test('register a machine, receive scoped gateway data, and configure its visual 
  const records=[{tag_id:'temperature',unit:'degC',value:46.25},{tag_id:'vibration_rms',unit:'mm/s',value:1.2}].map(r=>({...r,asset_id:'UI-FACTORY-PUMP',source,timestamp_utc:new Date().toISOString(),quality:'good',operating_state:'running'}));
  const sent=await page.request.post(endpoint,{headers:{Authorization:`Bearer ${token}`},data:{records}});expect(sent.ok()).toBeTruthy();expect((await sent.json()).results.every((r:{status:string})=>r.status==='accepted')).toBeTruthy();
  await expect(page.getByRole('heading',{name:'Sensor readings received',exact:true})).toBeVisible({timeout:10000});
- await page.getByRole('link',{name:'Open machine monitoring',exact:true}).click();
+ await page.getByRole('button',{name:'Open machine monitoring',exact:true}).click();
  const map=page.getByRole('region',{name:'Machine sensor map'});
  await expect(map.getByRole('img',{name:'Illustrative pump assembly',exact:true})).toBeVisible();
  await map.getByRole('button',{name:/Sensor temperature:/}).click();await expect(map.locator('.map-reading')).toContainText('46.25');

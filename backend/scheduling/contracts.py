@@ -26,6 +26,7 @@ class Period(Strict):
 class Technician(Strict):
     id:str=Field(min_length=1,max_length=80)
     name:str=Field(min_length=1,max_length=120)
+    user_id:str|None=Field(default=None,min_length=1,max_length=100)
     skills:list[str]=Field(min_length=1,max_length=20)
     availability:list[Period]=Field(min_length=1,max_length=20)
 

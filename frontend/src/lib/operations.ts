@@ -6,9 +6,17 @@ export interface SensorReading { sensor:{tag_id:string;unit:string}; observation
 export interface Telemetry { asset_id:string;latest:SensorReading[];history:Observation[];server_time:string }
 export interface Source { id:string;name:string;kind:string;status:string;read_only:number;last_received?:string|null }
 
+export type WorkspaceMode='demo'|'plant';
+let activeWorkspace:WorkspaceMode='demo',workspaceGeneration=0;
+export function setRequestWorkspace(mode:WorkspaceMode){activeWorkspace=mode;workspaceGeneration++;}
+export function currentWorkspace(){return activeWorkspace;}
+
 export async function operationsRequest<T>(path:string,options?:RequestInit):Promise<T> {
-  const response=await fetch(`${BASE}/api${path}`,{credentials:'include',...options,
-    headers:options?.body instanceof FormData?options.headers:{'Content-Type':'application/json',...options?.headers}});
+  const generation=workspaceGeneration;
+  const headers=new Headers(options?.headers);headers.set('X-Maintenance-Workspace',activeWorkspace);
+  if(!(options?.body instanceof FormData))headers.set('Content-Type','application/json');
+  const response=await fetch(`${BASE}/api${path}`,{credentials:'include',...options,headers});
+  if(generation!==workspaceGeneration)throw new Error('Workspace changed; previous response discarded.');
   if(!response.ok) {
     if(response.status===401&&path!=='/auth/login'&&path!=='/auth/me'&&typeof window!=='undefined')window.dispatchEvent(new Event('operations-session-expired'));
     let detail=`Request failed (${response.status})`;
@@ -22,13 +30,19 @@ export async function operationsRequest<T>(path:string,options?:RequestInit):Pro
     } catch {}
     throw new Error(detail);
   }
-  return response.json();
+  const result=await response.json();
+  if(generation!==workspaceGeneration)throw new Error('Workspace changed; previous response discarded.');
+  return result;
 }
 
 export const TELEMETRY_WS=(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/^http/,'ws')+'/api/ws/telemetry';
 
 export async function operationsDownload(path:string):Promise<Blob>{
-  const response=await fetch(`${BASE}/api${path}`,{credentials:'include'});
+  const generation=workspaceGeneration;
+  const response=await fetch(`${BASE}/api${path}`,{credentials:'include',headers:{'X-Maintenance-Workspace':activeWorkspace}});
+  if(generation!==workspaceGeneration)throw new Error('Workspace changed; download discarded.');
   if(!response.ok)throw new Error(`Report unavailable (${response.status}); verify your evidence access.`);
-  return response.blob();
+  const blob=await response.blob();
+  if(generation!==workspaceGeneration)throw new Error('Workspace changed; download discarded.');
+  return blob;
 }

@@ -58,7 +58,8 @@ def authorize_document(conn,user,document_id,asset_id=None,require_approved=True
         if scoped and asset_id not in scoped:raise HTTPException(404,'Document is not applicable to this asset')
         if json.loads(doc['metadata']).get('simulation_only'):
             mode=conn.execute('SELECT mode FROM plants WHERE id=?',(asset['plant_id'],)).fetchone()[0]
-            if mode!='simulation':raise HTTPException(404,'Simulation documentation is unavailable for physical equipment')
+            from backend.core.workspaces import asset_workspace
+            if mode!='simulation' or asset_workspace(conn,asset_id)!='demo':raise HTTPException(404,'Simulation documentation is unavailable for physical equipment')
     return doc
 
 

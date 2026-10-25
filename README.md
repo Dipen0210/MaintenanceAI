@@ -200,3 +200,11 @@ The reference plant integration uses a read-only OPC UA bridge and the authentic
 ### Field work and repair verification
 
 The demo condition selector includes mixed, normal, warning and critical scenarios. Confirmed work orders now support engineer start/coordination notes, repair reports, and independent maintenance-manager verification or return for further work. Status and history appear in the dashboard, equipment activity, maintenance views and authorized Copilot evidence. Closing work does not change sensor measurements or clear alarms. See [Field workflow and demo walkthrough](docs/deployment/FIELD_WORKFLOW.md).
+
+### Field issue intake and personal work queues
+
+Use **Issues** to report an observed symptom without needing sensor data or a prediction. Maintenance managers assign investigations to named engineers; **My Work** shows those investigations and confirmed jobs bound to the signed-in account. Reports support protected photo evidence and versioned notes. Closing an investigation does not mark a machine repaired.
+
+The sidebar **Workspace** selector separates demo equipment from other registered machines within the authorized site. It clears prior machine/Copilot context when switching. Administration and planning resources remain site-wide; production tenant provisioning is still a separate requirement. See the [field workflow guide](docs/deployment/FIELD_WORKFLOW.md) for assignment, photo limits and remaining capabilities.
+
+Machine QR labels and **Scan machine** provide authenticated equipment access. **Preventive plans** supports recurring calendar tasks that generate draft work for the existing human approval workflow. See [field workflow](docs/deployment/FIELD_WORKFLOW.md) for calendar rules and current limitations. Meter-triggered plans and inspection rounds remain future work.

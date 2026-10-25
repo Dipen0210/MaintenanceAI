@@ -27,3 +27,6 @@ pyarrow>=20.0.0
 
 # Authenticated machine photo normalization
 Pillow>=13,<14
+
+# Authenticated, locally generated machine QR labels
+qrcode==8.2

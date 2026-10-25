@@ -4,7 +4,7 @@ from fastapi import APIRouter,Depends,File,HTTPException,Query,Request,Response,
 from pydantic import BaseModel,Field,ConfigDict
 from starlette.requests import HTTPConnection
 from backend.core.database import transaction,audit,iso,utcnow
-from backend.core.security import authenticate,principal,require_roles,allowed_assets,authorize_asset,authorize_source
+from backend.core.security import authenticate,principal,require_roles,allowed_source_ids,allowed_assets,authorize_asset,authorize_source
 from backend.ingestion.service import ingest,latest_telemetry
 from backend.ingestion.adapters import CSVAdapter,ParquetAdapter
 from backend.ingestion.responses import UserResponse,LoginResponse,LogoutResponse,AssetResponse,SourceResponse,TelemetryResponse,ImportResponse,AlarmResponse
@@ -63,8 +63,8 @@ def asset(asset_id:str,user=Depends(principal)):
 def telemetry(asset_id:str,limit:int=Query(120,ge=1,le=1000),user=Depends(principal)):
     with transaction() as conn:
         current=latest_telemetry(conn,user,asset_id)
-        history=[dict(r) for r in conn.execute('''SELECT t.* FROM telemetry t JOIN source_grants g ON t.source=g.source_id
-            WHERE t.asset_id=? AND g.user_id=? ORDER BY t.timestamp_utc DESC LIMIT ?''',(asset_id,user['id'],limit))]
+        sources=allowed_source_ids(conn,user);slots=','.join('?' for _ in sources)
+        history=[dict(r) for r in conn.execute(f'SELECT * FROM telemetry WHERE asset_id=? AND source IN ({slots}) ORDER BY timestamp_utc DESC LIMIT ?',(asset_id,*sources,limit))]
         audit(conn,user,'read_telemetry',asset_id,'allowed')
         return {'asset_id':asset_id,'latest':current,'history':list(reversed(history)),'server_time':iso()}
 
@@ -81,6 +81,8 @@ def integration_status(user=Depends(principal)):
     with transaction() as conn:
         rows=[dict(r) for r in conn.execute('''SELECT s.* FROM sources s JOIN source_grants g ON s.id=g.source_id
             WHERE g.user_id=? AND s.plant_id=?''',(user['id'],user['plant_id']))]
+        from backend.core.workspaces import matches_source
+        rows=[r for r in rows if matches_source(user,r)]
         for row in rows:
             if row['kind'] in ['simulation','gateway','opcua','historian'] and row['last_received'] and row['status'] not in ['paused','revoked']:
                 from datetime import datetime
@@ -122,6 +124,10 @@ async def telemetry_socket(ws:WebSocket):
         await ws.close(code=1008);return
     token=ws.cookies.get('maintenanceai_session')
     if not token:await ws.close(code=1008);return
+    from backend.core.workspaces import parse_workspace
+    try:workspace=parse_workspace(ws.query_params.get('workspace'))
+    except HTTPException:
+        await ws.close(code=1008);return
     await ws.accept()
     try:
         while True:
@@ -131,6 +137,7 @@ async def telemetry_socket(ws:WebSocket):
                     WHERE s.token_hash=? AND s.expires_at>? AND u.enabled=1''',(hashlib.sha256(token.encode()).hexdigest(),iso())).fetchone()
                 if row is None:await ws.close(code=1008);return
                 user=dict(row)
+                if workspace:user['workspace']=workspace
                 payload=[{'asset':a,'telemetry':latest_telemetry(conn,user,a['id'])} for a in allowed_assets(conn,user)]
             await ws.send_json({'type':'telemetry_snapshot','timestamp_utc':iso(),'assets':payload})
             await asyncio.sleep(5)

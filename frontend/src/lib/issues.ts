@@ -1,0 +1,1 @@
+export type Issue={id:string;asset_id:string;title:string;description:string;reported_severity:string;status:string;assignee_id:string|null;assignee_name:string|null;assignee_enabled?:boolean;created_by:string;created_at:string;version:number;events:{actor_id:string;created_at:string;action:string;notes:string;version:number}[];photos:{id:string;created_at:string}[]};

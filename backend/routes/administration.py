@@ -14,7 +14,7 @@ from backend.ingestion.responses import AssetResponse,SensorResponse
 
 router=APIRouter(prefix='/api/admin',tags=['local administration'])
 admin=require_roles('administrator')
-Roles=Literal['administrator','engineer','reliability_engineer','maintenance_manager']
+Roles=Literal['administrator','engineer','maintenance_manager','reliability_engineer','operator']
 
 
 class Access(Strict):
@@ -255,3 +255,15 @@ def events(user=Depends(admin)):
     with transaction() as conn:
         scope(conn,user)
         return [dict(r) for r in conn.execute('SELECT * FROM audit_events WHERE plant_id=? ORDER BY timestamp_utc DESC LIMIT 200',(user['plant_id'],))]
+
+
+@router.get('/sources')
+def registered_sources(user=Depends(admin)):
+    with transaction() as conn:
+        return [dict(r) for r in conn.execute('SELECT s.* FROM sources s JOIN source_grants g ON g.source_id=s.id WHERE g.user_id=? AND s.plant_id=? ORDER BY s.name',(user['id'],user['plant_id']))]
+
+
+@router.get('/assets/{aid}/telemetry')
+def commissioning_telemetry(aid:str,user=Depends(admin)):
+    from backend.routes.v2 import telemetry
+    return telemetry(aid,limit=120,user=user)

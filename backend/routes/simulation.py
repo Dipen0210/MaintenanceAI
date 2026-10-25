@@ -21,7 +21,7 @@ def scenario(conn):
 
 
 def status(conn,user):
-    available=os.getenv('MAINTENANCEAI_MODE','demo')=='demo' and user['plant_id']=='demo-plant'
+    available=os.getenv('MAINTENANCEAI_MODE','demo')=='demo' and user['plant_id']=='demo-plant' and user.get('workspace')!='plant'
     can_control=False
     if available:
         source=conn.execute("SELECT 1 FROM source_grants WHERE source_id='demo-simulator' AND user_id=?",(user['id'],)).fetchone()

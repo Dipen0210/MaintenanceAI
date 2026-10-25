@@ -23,6 +23,9 @@ def update(wid,body,user):
         if status not in ['scheduled','in_progress','awaiting_verification','completed']:raise HTTPException(409,'Field updates require a manager-confirmed schedule')
         if quarantine_reason(body.notes):raise HTTPException(422,'Unsafe instructions cannot be recorded as work guidance')
         action=body.action
+        if action in ['start','report_fixed']:
+            assigned={r[0] for r in conn.execute('SELECT user_id FROM work_user_assignments WHERE work_order_id=?',(wid,))}
+            if assigned and user['id'] not in assigned:raise HTTPException(403,'Only an assigned engineer may execute this work')
         if action=='start':
             role(conn,user,['engineer','reliability_engineer'])
             if status!='scheduled':raise HTTPException(409,'Only scheduled work can be started')
@@ -30,7 +33,8 @@ def update(wid,body,user):
             window=state['window']
             if not window:raise HTTPException(409,'A confirmed assignment is required')
             mode=conn.execute('SELECT mode FROM plants WHERE id=?',(user['plant_id'],)).fetchone()[0]
-            if mode!='simulation' and not datetime.fromisoformat(window['start_utc'])<=utcnow()<datetime.fromisoformat(window['end_utc']):
+            from backend.core.workspaces import asset_workspace
+            if (mode!='simulation' or asset_workspace(conn,work['asset_id'])!='demo') and not datetime.fromisoformat(window['start_utc'])<=utcnow()<datetime.fromisoformat(window['end_utc']):
                 raise HTTPException(409,'Work must start within its approved window. Coordinate an approved maintenance window with operations.')
             for dependency in work['content']['dependencies']:
                 if order(conn,user,dependency)['status']!='completed':raise HTTPException(409,'Dependent maintenance must be verified complete before starting')
