@@ -115,7 +115,9 @@ def sweep():
 
 
 async def worker():
+    from backend.preventive.meters import sweep as meter_sweep
     while True:
-        try:await asyncio.to_thread(sweep)
-        except Exception:LOG.exception('Preventive generation pass failed; retrying next minute')
+        for generate_pass in (sweep,meter_sweep):
+            try:await asyncio.to_thread(generate_pass)
+            except Exception:LOG.exception('Preventive generation pass failed; retrying next minute')
         await asyncio.sleep(60)

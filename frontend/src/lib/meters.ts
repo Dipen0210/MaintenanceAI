@@ -1,0 +1,4 @@
+import type {PreventiveTemplate} from './preventive';
+export type Meter={id:string;asset_id:string;tag_id:string;unit:'h'|'cycles';source_id:string;stale_after_seconds:number};
+export type MeterTemplate=Omit<PreventiveTemplate,'start_local'|'timezone'|'interval_unit'|'interval_count'> & {first_due:number;interval:number};
+export type MeterPlan={id:string;asset_id:string;sensor_id:string;version:number;enabled:boolean;template:MeterTemplate;meter:Meter;total:number|null;last_raw:number|null;last_timestamp:string|null;next_threshold:number;last_error:string|null;reading_problem:string|null;blocked_sample?:{id:string;value:number;timestamp_utc:string};history:{version:number;actor_id:string;created_at:string;reason:string}[];reconciliations:{id:string;actor_id:string;action:string;previous_total:number;confirmed_total:number;reason:string}[];occurrences:{id:string;threshold:number;work_order_id:string;status:string;overdue:boolean}[]};

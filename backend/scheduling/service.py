@@ -34,6 +34,7 @@ def order(conn,user,wid):
     authorize_asset(conn,user,row['asset_id'])
     value=dict(row);value['content']=json.loads(row['content']);data=value['content']
     for source in (data.get('risk_snapshot') or {}).get('source_ids',[]):authorize_source(conn,user,source)
+    if data.get('preventive',{}).get('trigger')=='meter':authorize_source(conn,user,data['preventive']['source_id'])
     for dep in data['dependencies']:
         prior=conn.execute('SELECT asset_id FROM work_orders WHERE id=?',(dep,)).fetchone()
         if not prior:raise HTTPException(404,'Dependency unavailable')

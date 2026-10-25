@@ -67,6 +67,9 @@ def resolve(conn,user,asset_id,evidence_id):
         updates=' '.join(f'Human record by {e["actor_id"]} at {e["created_at"]}: {e["action"]}; {e["notes"]}' for e in work['execution']['events'][-5:])
         risk=work['content'].get('risk_snapshot')
         basis=f'Reviewed risk priority: {work["content"]["priority"]}, assessed at {risk["timestamp_utc"]}.' if risk else 'Calendar preventive task. No condition-based risk assessment is implied.'
+        meter=work['content'].get('preventive',{})
+        if meter.get('trigger')=='meter':
+            basis=f'Meter preventive task at {meter["threshold"]} {meter["unit"]}; accepted cumulative total {meter["observed_total"]} from sample {meter["sample_id"]} at {meter["sample_timestamp"]}, including any human-reconciled counter offset. Actual threshold-crossing time is unknown. No condition-based risk assessment is implied.'
         return {**base,'title':'Work order '+work['id'],'text':f'{work["content"]["title"]}. Status: {work["status"]}. {basis} Scope: {work["content"]["task"]}. Physical work remains subject to site safety approval. '+updates+' Work completion records do not establish current equipment health or clear sensor alarms.',
                 'timestamp_utc':work['execution']['updated_at'] or work['created_at'],'role':'history'}
     if kind=='risk':

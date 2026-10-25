@@ -3,6 +3,7 @@
 - [Local setup and demonstration](deployment/LOCAL_DEMO.md)
 - [Machine onboarding and sensor gateways](deployment/MACHINE_ONBOARDING.md)
 - [Field work, repair reporting and verification](deployment/FIELD_WORKFLOW.md)
+- [Preventive maintenance](guides/PREVENTIVE_MAINTENANCE.md): calendar/meter setup, counter reconciliation and current limits.
 - [System architecture](architecture/SYSTEM.md)
 - [Security boundaries](security/SECURITY.md)
 - [Evaluation and reproduction](evaluation/README.md)
