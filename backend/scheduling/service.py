@@ -52,6 +52,8 @@ def order(conn,user,wid):
     value['operations']=handover_snapshot(conn,wid)
     from backend.scheduling.lifecycle import history
     value['lifecycle_history']=history(conn,wid)
+    from backend.inventory.service import summary
+    value['inventory']=summary(conn,wid)
     if value['execution']['status']:value['status']=value['execution']['status']
     return value
 
@@ -134,13 +136,17 @@ def save_config(body,user):
         if body.simulation_only!=(mode=='simulation'):raise HTTPException(422,'Planning mode must match the plant mode')
         rid=identifier();conn.execute('UPDATE planning_configs SET active=0 WHERE plant_id=?',(user['plant_id'],))
         conn.execute('INSERT INTO planning_configs VALUES(?,?,?,?,?,1)',(rid,user['plant_id'],json.dumps(body.model_dump(mode='json')),user['id'],iso()))
+        from backend.inventory.service import enabled,sync_catalog
+        for scope in ['demo','plant']:
+            if enabled(conn,user['plant_id'],scope):sync_catalog(conn,user['plant_id'],scope,body.model_dump(mode='json')['parts'])
         audit(conn,user,'configure_planning',rid,body.reason)
         return active_config(conn,user)
 
 
-def reservations(conn,plant_id):
+def reservations(conn,plant_id,stock_scope=None):
     rows=conn.execute('''SELECT s.* FROM schedule_assignments s JOIN assets a ON a.id=s.asset_id WHERE a.plant_id=?''',(plant_id,))
-    return [{**dict(r),'technician_ids':json.loads(r['technician_ids']),'parts':json.loads(r['parts'])} for r in rows]
+    from backend.inventory.service import reserved_parts
+    return [{**dict(r),'technician_ids':json.loads(r['technician_ids']),'parts':reserved_parts(conn,r['work_order_id'],json.loads(r['parts'])) if not stock_scope or asset_workspace(conn,r['asset_id'])==stock_scope else {}} for r in rows]
 
 
 def proposal(conn,user,pid):
@@ -184,7 +190,11 @@ def propose(body,user):
                 if not person:raise HTTPException(409,'Selected engineer is no longer eligible')
                 for work in orders:order(conn,dict(person),work['id'])
             selected={**selected,'technicians':[technicians[tid] for tid in body.technician_ids]}
-        snapshot=dict(config=selected,orders=orders,existing=reservations(conn,user['plant_id']),
+        from backend.inventory.service import planning_stock
+        selected=planning_stock(conn,user,selected,orders)
+        stock_scopes={asset_workspace(conn,w['asset_id']) for w in orders}
+        stock_scope=next(iter(stock_scopes)) if len(stock_scopes)==1 else None
+        snapshot=dict(config=selected,orders=orders,existing=reservations(conn,user['plant_id'],stock_scope),
                       start_utc=iso(body.start_utc),end_utc=iso(body.end_utc))
     result=solve(snapshot)
     with transaction() as conn:
@@ -217,7 +227,10 @@ def review_proposal(pid,body,user):
                 if now['status']!='approved' or now['content']!=previous['content'] or now['execution']['version']!=previous['execution']['version']:raise HTTPException(409,'Work order changed or already scheduled; generate a new proposal')
             assignments=current['result']['assignments']
             if any(datetime.fromisoformat(a['start_utc'])<=utcnow() for a in assignments):raise HTTPException(409,'Proposed time has passed; generate a new proposal')
-            snapshot['existing']=reservations(conn,user['plant_id'])
+            from backend.inventory.service import planning_stock
+            snapshot['config']=planning_stock(conn,user,snapshot['config'],snapshot['orders'])
+            stock_scopes={asset_workspace(conn,w['asset_id']) for w in snapshot['orders']}
+            snapshot['existing']=reservations(conn,user['plant_id'],next(iter(stock_scopes)) if len(stock_scopes)==1 else None)
             issues=validate(assignments,snapshot)
             if issues:raise HTTPException(409,'Resources changed; generate a new proposal. '+ '; '.join(issues))
             # Validate and freeze named users from the exact approved resource snapshot.
@@ -239,6 +252,8 @@ def review_proposal(pid,body,user):
                 conn.execute("UPDATE work_orders SET status='scheduled' WHERE id=?",(a['work_order_id'],))
                 from backend.scheduling.lifecycle import record_reconfirmation
                 record_reconfirmation(conn,a['work_order_id'],user)
+                from backend.inventory.service import reserve
+                reserve(conn,a['work_order_id'],user,'schedule:'+pid+':'+a['work_order_id'])
         conn.execute('UPDATE schedule_proposals SET status=?,reviewed_by=?,reviewed_at=?,review_reason=? WHERE id=?',
                      (body.decision,user['id'],iso(),body.reason,pid))
         audit(conn,user,'review_schedule',pid,body.decision+': '+body.reason)

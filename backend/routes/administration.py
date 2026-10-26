@@ -14,7 +14,7 @@ from backend.ingestion.responses import AssetResponse,SensorResponse
 
 router=APIRouter(prefix='/api/admin',tags=['local administration'])
 admin=require_roles('administrator')
-Roles=Literal['administrator','engineer','maintenance_manager','reliability_engineer','operator','operations_coordinator']
+Roles=Literal['administrator','engineer','maintenance_manager','reliability_engineer','operator','operations_coordinator','stores_coordinator']
 
 
 class Access(Strict):

@@ -21,6 +21,7 @@ def manifest(mode='tools_rag'):
     sources+=['backend/routes/machines.py','backend/routes/simulation.py','backend/ingestion/condition.py','backend/ingestion/adapters.py','scripts/opcua_gateway.py']
     sources+=['backend/preventive/service.py','backend/preventive/calendar.py','backend/preventive/contracts.py']
     sources+=['backend/preventive/meters.py','backend/routes/meters.py']
+    sources+=['backend/inventory/service.py','backend/routes/inventory.py']
     sources+=['backend/scheduling/lifecycle.py','backend/core/database.py','backend/notifications/service.py','backend/notifications/events.py','backend/notifications/conditions.py','backend/routes/notifications.py']
     sources+=['backend/scheduling/coordination.py','backend/routes/coordination.py']
     sources+=['backend/inspections/service.py','backend/routes/inspections.py']

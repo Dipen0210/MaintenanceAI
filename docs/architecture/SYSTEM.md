@@ -45,6 +45,7 @@ There is no arrow from the language model, scheduler or application to a PLC/act
 | LLMOps | Local trace/evaluation system equivalent; content-addressed configurations and release decisions | traces, feedback, evaluation runs, declared reviews, release records |
 | Planning | Immutable work drafts, approved candidates, bounded CP-SAT and independent validation | resource versions, proposal snapshots, manager decisions, confirmed reservations |
 | Field intake | Sensor-independent human reports, manager assignment, versioned notes, authenticated normalized photos and named personal queues | `issues`, `issue_events`, `issue_photos`, `work_user_assignments` |
+| Inventory | Opt-in counted stock, atomic schedule reservations, job custody and reconciliation | workspace activation, versioned parts, movement ledger, idempotent commands and work allocations |
 | Administration | Scoped local identities, revocation, file sources, asset/sensor contracts, audit view | transactional registry/grants and audit events |
 
 Migrations run in lexical order within a transaction. UTC timestamps and immutable identifiers are used throughout. Signal files and original documents are stored beside the configured database. A database backup alone is insufficient: preserve associated files and matching model manifests/artifacts together.
@@ -63,7 +64,7 @@ Approved document content remains untrusted as instructions to the model. The mo
 
 ## Product navigation
 
-`/operations` connects telemetry, sensor quality, alarms, model outputs, current risk, investigation, work orders and upcoming approved maintenance. `/operations/risks` shows risk explanations and planning status. `/operations/scheduling` handles resources, candidates and approval. `/operations/models`, `/operations/documents`, `/operations/observability` and `/operations/admin` provide the model, evidence, trace and access-management views.
+`/operations` connects telemetry, sensor quality, alarms, model outputs, current risk, investigation, work orders and upcoming approved maintenance. `/operations/risks` shows risk explanations and planning status. `/operations/scheduling` handles resources, candidates and approval. `/operations/inventory` manages counted receipts and adjustments, with job issue/usage/return embedded in maintenance work. `/operations/models`, `/operations/documents`, `/operations/observability` and `/operations/admin` provide the model, evidence, trace and access-management views.
 
 The original `/plant/*`, `/predict/*` and legacy WebSocket routes remain an isolated public local simulation/reference-dataset interface. They do not bypass V2 industrial data permissions or interact with real equipment. Production exposure would require a separate review and deployment boundary; the verified launcher binds both services only to loopback.
 

@@ -25,4 +25,4 @@ Open dependent work blocks cancellation. Confirmed or active dependent work also
 
 ## Boundaries
 
-This workflow does not transfer active repairs, provide an atomic swap that retains the old reservation until a replacement is approved, send external notifications, or implement a physical stock ledger. Parts are planning quantities. Local tests and synthetic rehearsals do not establish factory commissioning or qualified Copilot approval.
+This workflow does not transfer active repairs, provide an atomic swap that retains the old reservation until a replacement is approved, send external notifications, or alter physical equipment. Workspaces with [counted inventory](INVENTORY.md) require issued parts to be returned before unstarted cancellation/replanning and release recorded stock reservations. Other workspaces retain planning quantities. Local tests and synthetic rehearsals do not establish factory commissioning or qualified Copilot approval.

@@ -151,6 +151,7 @@ class WorkOrderResponse(Strict):
     execution:dict
     operations:dict|None
     lifecycle_history:list[dict]
+    inventory:dict|None
 
 
 class ProposalResponse(Strict):

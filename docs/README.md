@@ -7,6 +7,7 @@
 - [Operations coordination](guides/OPERATIONS_COORDINATION.md): downtime approval, equipment release and independent production return.
 - [Work lifecycle changes](guides/WORK_LIFECYCLE.md): cancellation, rescheduling and reassignment before work starts.
 - [Notifications and escalation](guides/NOTIFICATIONS.md): personal inbox, acknowledgement, delivery retries and current limits.
+- [Counted spare-parts inventory](guides/INVENTORY.md): stocktake activation, receipts, reservations, job custody and reconciliation.
 - [System architecture](architecture/SYSTEM.md)
 - [Security boundaries](security/SECURITY.md)
 - [Evaluation and reproduction](evaluation/README.md)

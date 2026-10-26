@@ -25,6 +25,8 @@ def change(wid,body,user):
         for row in conn.execute('SELECT w.id,w.content,COALESCE(e.status,w.status) AS status FROM work_orders w JOIN assets a ON a.id=w.asset_id LEFT JOIN work_execution e ON e.work_order_id=w.id WHERE a.plant_id=?',(user['plant_id'],)):
             if row['status'] in blocked and wid in json.loads(row['content'])['dependencies']:
                 raise HTTPException(409,'Resolve dependent open work first; changing this job would invalidate its dependency')
+        from backend.inventory.service import release
+        release(conn,wid,user,'lifecycle:'+wid+':'+str(body.expected_version+1))
         assignments=[dict(r) for r in conn.execute('SELECT * FROM schedule_assignments WHERE work_order_id=?',(wid,))]
         users=[dict(r) for r in conn.execute('SELECT * FROM work_user_assignments WHERE work_order_id=?',(wid,))]
         now=iso();version=work['execution']['version']+1;disposition='cancelled' if body.action=='cancel' else 'released_for_replanning'

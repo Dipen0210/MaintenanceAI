@@ -72,3 +72,10 @@
 .notification-card details label{display:grid;gap:8px;margin:12px 0}
 .notification-card.is-escalated{border-left:3px solid #dfb65b}
 @media(max-width:600px){.notification-card{padding:18px}.topbar-actions{flex-wrap:wrap;justify-content:flex-end}.notification-launcher{padding:6px;min-height:36px}}
+
+.inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px;margin-top:20px}
+.stock-card,.stock-work-part{padding:20px;min-width:0;overflow-wrap:anywhere}
+.stock-work-part{border:1px solid var(--ws-line);border-radius:10px;margin:12px 0}
+.stock-balances{display:flex;flex-wrap:wrap;gap:20px;margin:20px 0}.stock-balances span{display:grid;gap:4px;color:var(--ws-muted);font-size:12px}.stock-balances strong{font-size:24px;color:var(--ws-text)}
+.stock-movement{display:grid;gap:14px;margin-top:16px}.stock-movement label{display:grid;gap:7px;min-width:0}.stock-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stock-movement input,.stock-movement select,.stock-movement textarea{width:100%;min-width:0}.stock-movement button{justify-self:start}
+@media(max-width:600px){.stock-fields{grid-template-columns:1fr}.stock-card,.stock-work-part{padding:14px}}

@@ -15,6 +15,7 @@ The validated deployment is a local simulated facility. Expert review is deferre
 | Stale / invalid observations | Finite values, explicit units/bounds/time/quality/state, rejected ingestion recorded, stale evidence excluded from current diagnosis | `test_phase0_inference.py`, `test_phase1_foundation.py`, `test_phase2_ml.py`, `test_phase3_risk.py` |
 | Model provenance | Trusted catalog hashes, immutable model/input identities, dataset bindings and operating-state checks | `test_phase0_inference.py`, `test_phase2_ml.py` |
 | Scheduling approval | Current enabled manager role; reauthorize evidence; serialized independent feasibility checks against latest reservations | `test_phase6_scheduling.py`, `test_phase7_security.py` |
+| Counted stock and job custody | Current full-workspace stores access; named engineer consumption; evidence reauthorization on retries; shared work versions and serialized nonnegative balances | `test_inventory.py` |
 | Configuration / release regression | Content-addressed implementation, model, prompt and dataset identities; complete current measured evidence required | `test_phase5_llmops.py`, injected regression report, release CLI |
 
 The native browser suite also verifies engineer-to-manager approval, scoped-account access and revocation of a live session. A database fixture or model-output injection is labeled as such in tests; it is not reported as actual industrial evidence or actual model accuracy.

@@ -411,3 +411,6 @@ app.include_router(coordination_router)
 
 from backend.routes.notifications import router as notifications_router
 app.include_router(notifications_router)
+
+from backend.routes.inventory import router as inventory_router
+app.include_router(inventory_router)

@@ -53,6 +53,9 @@ def update(wid,body,user):
             elif status!='awaiting_verification':raise HTTPException(409,'A repair report must be awaiting verification')
             report=next(e for e in reversed(state['events']) if e['action']=='report_fixed')
             if report['actor_id']==user['id']:raise HTTPException(403,'A different maintenance manager must verify this repair report')
+            from backend.inventory.service import release,reserve
+            if action=='verify':release(conn,wid,user,'verify:'+wid+':'+str(state['version']+1))
+            else:reserve(conn,wid,user,'reopen:'+wid+':'+str(state['version']+1))
             status=('awaiting_return_to_service' if work['operations'] else 'completed') if action=='verify' else ('scheduled' if status=='awaiting_return_to_service' else 'in_progress')
         elif action=='note' and status=='completed':raise HTTPException(409,'Verified work is closed. Create a new work order for further issues.')
         version=state['version']+1;now=iso()
