@@ -45,3 +45,57 @@ def list_catalog(user=Depends(principal)):return catalog.listing(user)
 def create_part(body:NewPart,user=Depends(principal)):return catalog.save(body.part_id,body,user,True)
 @router.put('/catalog/{pid}')
 def edit_part(pid:str,body:PartDetails,user=Depends(principal)):return catalog.save(pid,body,user)
+
+from typing import Literal
+from datetime import datetime,timezone
+from backend.inventory import procurement
+
+class Command(Change):
+    request_key:str=Field(min_length=16,max_length=100)
+class Supplier(Command):
+    name:str=Field(min_length=2,max_length=120)
+    contact:str=Field(min_length=3,max_length=200)
+    reference:str=Field(min_length=3,max_length=250)
+    notes:str=Field(default='',max_length=1000)
+class SupplierReview(Change):
+    expected_version:int=Field(strict=True,ge=1)
+    action:Literal['approve','suspend']
+    verified:bool=False
+class Quotation(Command):
+    supplier_id:str
+    part_id:str
+    reference:str=Field(min_length=3,max_length=250)
+    currency:Literal['USD','EUR','GBP','INR','CAD','AUD']
+    unit_price_minor:int=Field(strict=True,ge=0,le=1000000000)
+    shipping_minor:int=Field(default=0,strict=True,ge=0,le=1000000000)
+    tax_minor:int=Field(default=0,strict=True,ge=0,le=1000000000)
+    minimum_quantity:int=Field(default=1,strict=True,ge=1,le=100000)
+    maximum_quantity:int=Field(default=100000,strict=True,ge=1,le=100000)
+    lead_time_days:int=Field(strict=True,ge=0,le=3650)
+    valid_until:datetime
+    @field_validator('valid_until')
+    @classmethod
+    def aware(cls,v):
+        if v.tzinfo is None:raise ValueError('Quotation expiry needs a timezone')
+        return v.astimezone(timezone.utc)
+    @model_validator(mode='after')
+    def quantities(self):
+        if self.minimum_quantity>self.maximum_quantity:raise ValueError('Minimum order quantity exceeds maximum')
+        return self
+class QuoteReview(Change):
+    expected_version:int=Field(strict=True,ge=1)
+    action:Literal['verify','withdraw']
+    verified:bool=False
+
+@router.get('/suppliers')
+def suppliers(user=Depends(principal)):return procurement.supplier_list(user)
+@router.post('/suppliers')
+def add_supplier(body:Supplier,user=Depends(principal)):return procurement.supplier_create(body,user)
+@router.post('/suppliers/{sid}/review')
+def review_supplier(sid:str,body:SupplierReview,user=Depends(principal)):return procurement.supplier_review(sid,body,user)
+@router.post('/quotes')
+def add_quote(body:Quotation,user=Depends(principal)):return procurement.quote_create(body,user)
+@router.post('/quotes/{qid}/review')
+def review_quote(qid:str,body:QuoteReview,user=Depends(principal)):return procurement.quote_review(qid,body,user)
+@router.get('/quotes/compare')
+def compare_quotes(part_id:str,quantity:int,user=Depends(principal)):return procurement.compare(user,part_id,quantity)
