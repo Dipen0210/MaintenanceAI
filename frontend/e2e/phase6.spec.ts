@@ -73,14 +73,14 @@ test('engineer investigation becomes a manager-reviewed, internally confirmed ma
  await expect(work).toContainText('scheduled');
  await page.reload();
  await page.getByRole('button',{name:'Schedules',exact:true}).click();
- await expect(proposal).toContainText('Resources reserved internally');
+ await expect(proposal).toContainText('Current reservations are marked active');
  await page.getByRole('button',{name:'Resources',exact:true}).click();
  await page.getByLabel('Part 1 quantity',{exact:true}).fill('9');
  await page.getByLabel('Configuration change reason',{exact:true}).fill('Reconciled simulated stock after manager review; existing reservations remain in force.');
  await page.getByRole('button',{name:'Save planning resources',exact:true}).click();
  await expect(page.getByRole('status')).toContainText('Planning resources saved');
  await page.getByRole('button',{name:'Schedules',exact:true}).click();
- await expect(proposal).toContainText('Resources reserved internally');
+ await expect(proposal).toContainText('Current reservations are marked active');
  await expect(page.locator('main').getByRole('alert')).toHaveCount(0);
  // The overview is part of this workflow, independent of cross-file test ordering.
  await page.getByRole('navigation',{name:'Primary navigation'}).getByRole('link',{name:'Dashboard',exact:true}).click();

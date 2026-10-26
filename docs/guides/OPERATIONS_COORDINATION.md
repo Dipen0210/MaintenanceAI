@@ -25,6 +25,6 @@ View open requests and handovers in **Coordination**; turn on historical decisio
 
 ## Current boundaries
 
-This feature is online and internal to PlantPilot. It does not send email/chat notifications, synchronize an ERP/MES, cancel or reschedule confirmed assignments, or implement a permit-to-work system. An expired physical window cannot be reopened: the original job stays awaiting return while a separately approved future corrective job is arranged. Do not interpret a UI record as authorization outside the approved window. Do not disable coordination on an open job to bypass a blocked step.
+This feature is online and internal to PlantPilot. It does not send email/chat notifications, synchronize an ERP/MES, transfer active repairs or implement a permit-to-work system. Unstarted confirmed work can be [returned to planning or cancelled](WORK_LIFECYCLE.md); a released handover must first be placed on hold, and a replacement schedule requires fresh approvals. An expired physical window on previously started work cannot be reopened: the original job stays awaiting return while a separately approved future corrective job is arranged. Do not interpret a UI record as authorization outside the approved window. Do not disable coordination on an open job to bypass a blocked step.
 
 Local software tests and synthetic browser rehearsal are not factory commissioning or qualified expert approval. Expert Copilot review remains deferred.

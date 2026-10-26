@@ -127,11 +127,13 @@ class FieldUpdate(Strict):
 
 
 class ProposalRequest(Period):
+    technician_ids:list[str]|None=Field(default=None,min_length=1,max_length=20)
     work_order_ids:list[str]=Field(min_length=1,max_length=20)
 
     @model_validator(mode='after')
     def bounded(self):
         if (self.end_utc-self.start_utc).total_seconds()>14*86400:raise ValueError('Planning horizon is limited to 14 days')
+        if self.technician_ids is not None and len(self.technician_ids)!=len(set(self.technician_ids)):raise ValueError('Duplicate technician selection')
         if len(self.work_order_ids)!=len(set(self.work_order_ids)):raise ValueError('Duplicate work order')
         return self
 
@@ -148,6 +150,7 @@ class WorkOrderResponse(Strict):
     review_reason:str|None
     execution:dict
     operations:dict|None
+    lifecycle_history:list[dict]
 
 
 class ProposalResponse(Strict):
@@ -166,3 +169,16 @@ class ConfigResponse(Strict):
     id:str
     created_at:str
     config:dict
+
+
+class LifecycleChange(Strict):
+    action:Literal['cancel','replan']
+    expected_version:int=Field(ge=0)
+    reason:str=Field(min_length=15,max_length=1000)
+    not_started_confirmed:bool=False
+
+    @field_validator('reason')
+    @classmethod
+    def useful(cls,value):
+        if len(value.strip())<15:raise ValueError('Describe the change in at least 15 characters')
+        return value.strip()

@@ -72,23 +72,25 @@ def decide(rid,body,user):
 def confirm(conn,user,pid,assignments):
     for a in assignments:
         rule=policy(conn,a['asset_id'])
-        if not rule['required']:continue
+        if not rule['required']:
+            conn.execute("UPDATE operations_handovers SET status='not_required',version=version+1,updated_at=? WHERE work_order_id=?",(iso(),a['work_order_id']))
+            continue
         row=conn.execute('SELECT * FROM operations_requests WHERE proposal_id=? AND work_order_id=?',(pid,a['work_order_id'])).fetchone()
         if not row or row['policy_version']!=rule['version'] or row['status']!='approved' or row['start_utc']!=a['start_utc'] or row['end_utc']!=a['end_utc']:
             raise HTTPException(409,'Operations must approve each exact downtime window before schedule confirmation')
         eligible_actor(conn,row['actor_id'],a['work_order_id'])
-        conn.execute("INSERT INTO operations_handovers VALUES(?,?,0,'awaiting_release',NULL,?)",(a['work_order_id'],row['id'],iso()))
+        conn.execute("INSERT INTO operations_handovers VALUES(?,?,0,'awaiting_release',NULL,?) ON CONFLICT(work_order_id) DO UPDATE SET request_id=excluded.request_id,version=operations_handovers.version+1,status='awaiting_release',actor_id=NULL,updated_at=excluded.updated_at",(a['work_order_id'],row['id'],iso()))
 
 
 def handover_snapshot(conn,wid):
     row=conn.execute('SELECT * FROM operations_handovers WHERE work_order_id=?',(wid,)).fetchone()
-    if not row:return None
+    if not row or row['status']=='not_required':return None
     return {**dict(row),'events':[dict(e) for e in conn.execute('SELECT * FROM operations_events WHERE work_order_id=? ORDER BY created_at,id',(wid,))]}
 
 
 def require_release(conn,wid):
     row=conn.execute('SELECT * FROM operations_handovers WHERE work_order_id=?',(wid,)).fetchone()
-    if not row:return
+    if not row or row['status']=='not_required':return
     if row['status']!='released':raise HTTPException(409,'Operations must release the machine to maintenance before work starts')
     eligible_actor(conn,row['actor_id'],wid)
 

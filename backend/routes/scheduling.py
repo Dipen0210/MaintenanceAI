@@ -47,3 +47,11 @@ def propose(body:ProposalRequest,user=Depends(principal)):return service.propose
 
 @router.post('/schedules/{pid}/approve',response_model=ProposalResponse)
 def approve(pid:str,body:Review,user=Depends(require_roles('maintenance_manager'))):return service.review_proposal(pid,body,user)
+
+
+from backend.scheduling.contracts import LifecycleChange
+
+@router.post('/work-orders/{wid}/lifecycle',response_model=WorkOrderResponse)
+def lifecycle(wid:str,body:LifecycleChange,user=Depends(require_roles('maintenance_manager'))):
+    from backend.scheduling.lifecycle import change
+    return change(wid,body,user)

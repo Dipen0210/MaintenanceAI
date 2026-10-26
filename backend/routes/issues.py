@@ -160,7 +160,7 @@ def my_work(user=Depends(principal)):
         for row in conn.execute('SELECT DISTINCT work_order_id FROM work_user_assignments WHERE user_id=?',(user['id'],)):
             try:
                 item=order(conn,user,row[0])
-                if item['status']!='completed':result.append(item)
+                if item['status'] not in ['completed','cancelled']:result.append(item)
             except HTTPException:continue
     from backend.routes.inspections import runs
     rounds=[r for r in runs(mine=True,user=user) if r['status'] not in ['completed','completed_with_skips','cancelled']]

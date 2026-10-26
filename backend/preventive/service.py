@@ -27,7 +27,7 @@ def view(conn,user,pid):
     for r in conn.execute('SELECT * FROM preventive_occurrences WHERE plan_id=? ORDER BY due_at DESC LIMIT 100',(pid,)):
         try:w=order(conn,user,r['work_order_id'])
         except HTTPException:continue
-        result['occurrences'].append({**dict(r),'status':w['status'],'overdue':w['status']!='completed' and utcnow()>datetime.fromisoformat(r['overdue_at'])})
+        result['occurrences'].append({**dict(r),'status':w['status'],'overdue':w['status'] not in ['completed','cancelled'] and utcnow()>datetime.fromisoformat(r['overdue_at'])})
     result['catch_up_pending']=bool(row['enabled'] and datetime.fromisoformat(row['next_due'])<=utcnow())
     return result
 

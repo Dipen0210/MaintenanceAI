@@ -120,7 +120,7 @@ def view(conn,user,pid):
     for r in conn.execute('SELECT * FROM meter_occurrences WHERE plan_id=? ORDER BY occurrence_index DESC LIMIT 100',(pid,)):
         try:w=order(conn,user,r['work_order_id'])
         except HTTPException:continue
-        p['occurrences'].append({**dict(r),'status':w['status'],'overdue':w['status']!='completed' and utcnow()>datetime.fromisoformat(r['overdue_at'])})
+        p['occurrences'].append({**dict(r),'status':w['status'],'overdue':w['status'] not in ['completed','cancelled'] and utcnow()>datetime.fromisoformat(r['overdue_at'])})
     if p['blocked_sample_id']:
         r=conn.execute('SELECT id,value,timestamp_utc FROM telemetry WHERE id=?',(p['blocked_sample_id'],)).fetchone();p['blocked_sample']=dict(r) if r else None
     return p

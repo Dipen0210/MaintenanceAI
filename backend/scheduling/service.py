@@ -50,6 +50,8 @@ def order(conn,user,wid):
     value['execution']=snapshot(conn,wid)
     from backend.scheduling.coordination import handover_snapshot
     value['operations']=handover_snapshot(conn,wid)
+    from backend.scheduling.lifecycle import history
+    value['lifecycle_history']=history(conn,wid)
     if value['execution']['status']:value['status']=value['execution']['status']
     return value
 
@@ -77,7 +79,7 @@ def create_draft(body,user):
         refs=procedures(conn,user,body.asset_id,body.procedure_ids)
         for wid in body.dependencies:
             prior=order(conn,user,wid)
-            if prior['status']=='rejected':raise HTTPException(409,'Rejected work cannot be a dependency')
+            if prior['status'] in ['rejected','cancelled']:raise HTTPException(409,'Rejected or cancelled work cannot be a dependency')
         if body.investigation_id:
             report=conn.execute('SELECT * FROM investigations WHERE id=? AND asset_id=? AND author_id=?',
                                 (body.investigation_id,body.asset_id,user['id'])).fetchone()
@@ -147,7 +149,12 @@ def proposal(conn,user,pid):
     snapshot=json.loads(row['snapshot'])
     for w in snapshot['orders']:order(conn,user,w['id'])
     value={k:json.loads(row[k]) if k=='result' else row[k] for k in ['id','created_at','config_id','status','result','reviewed_by','reviewed_at','review_reason']}
-    for assignment in value['result'].get('assignments',[]):assignment['work_status']=order(conn,user,assignment['work_order_id'])['status']
+    for assignment in value['result'].get('assignments',[]):
+        assignment['work_status']=order(conn,user,assignment['work_order_id'])['status']
+        active=conn.execute('SELECT 1 FROM schedule_assignments WHERE proposal_id=? AND work_order_id=?',(pid,assignment['work_order_id'])).fetchone()
+        old=conn.execute('SELECT disposition FROM schedule_assignment_archive WHERE proposal_id=? AND work_order_id=?',(pid,assignment['work_order_id'])).fetchone()
+        assignment['active']=bool(active)
+        assignment['reservation_status']='active' if active else old['disposition'] if old else 'unconfirmed'
     value['operations_requests']=[dict(r) for r in conn.execute('SELECT * FROM operations_requests WHERE proposal_id=? ORDER BY start_utc,id',(pid,))]
     return value
 
@@ -168,13 +175,24 @@ def propose(body,user):
         config=active_config(conn,user);orders=[order(conn,user,wid) for wid in body.work_order_ids]
         if config['config']['simulation_only'] and any(not w['content']['simulation_only'] for w in orders):raise HTTPException(409,'Physical maintenance requires commissioned plant planning resources, not demo resources')
         if any(w['status']!='approved' for w in orders):raise HTTPException(409,'Every candidate must have maintenance manager approval')
-        snapshot=dict(config=config['config'],orders=orders,existing=reservations(conn,user['plant_id']),
+        selected=config['config']
+        if body.technician_ids is not None:
+            technicians={t['id']:t for t in selected['technicians']}
+            if any(t not in technicians or not technicians[t].get('user_id') for t in body.technician_ids):raise HTTPException(422,'Selected technicians must exist and be linked to enabled engineer accounts')
+            for tid in body.technician_ids:
+                person=conn.execute("SELECT id,role,plant_id FROM users WHERE id=? AND enabled=1 AND role IN('engineer','reliability_engineer') AND plant_id=?",(technicians[tid]['user_id'],user['plant_id'])).fetchone()
+                if not person:raise HTTPException(409,'Selected engineer is no longer eligible')
+                for work in orders:order(conn,dict(person),work['id'])
+            selected={**selected,'technicians':[technicians[tid] for tid in body.technician_ids]}
+        snapshot=dict(config=selected,orders=orders,existing=reservations(conn,user['plant_id']),
                       start_utc=iso(body.start_utc),end_utc=iso(body.end_utc))
     result=solve(snapshot)
     with transaction() as conn:
         conn.execute('BEGIN IMMEDIATE')
         role(conn,user,['administrator','engineer','reliability_engineer','maintenance_manager'])
-        for w in orders:order(conn,user,w['id'])
+        for w in orders:
+            current=order(conn,user,w['id'])
+            if current['status']!='approved' or current['execution']['version']!=w['execution']['version']:raise HTTPException(409,'Work changed while planning; create a fresh proposal')
         pid=identifier();conn.execute('INSERT INTO schedule_proposals VALUES(?,?,?,?,?,?,?,?,NULL,NULL,NULL)',
             (pid,user['plant_id'],user['id'],iso(),config['id'],json.dumps(snapshot),json.dumps(result),'pending'))
         from backend.scheduling.coordination import create_requests
@@ -196,7 +214,7 @@ def review_proposal(pid,body,user):
             snapshot=json.loads(conn.execute('SELECT snapshot FROM schedule_proposals WHERE id=?',(pid,)).fetchone()[0])
             for previous in snapshot['orders']:
                 now=order(conn,user,previous['id'])
-                if now['status']!='approved' or now['content']!=previous['content']:raise HTTPException(409,'Work order changed or already scheduled; generate a new proposal')
+                if now['status']!='approved' or now['content']!=previous['content'] or now['execution']['version']!=previous['execution']['version']:raise HTTPException(409,'Work order changed or already scheduled; generate a new proposal')
             assignments=current['result']['assignments']
             if any(datetime.fromisoformat(a['start_utc'])<=utcnow() for a in assignments):raise HTTPException(409,'Proposed time has passed; generate a new proposal')
             snapshot['existing']=reservations(conn,user['plant_id'])
@@ -219,6 +237,8 @@ def review_proposal(pid,body,user):
             for a in assignments:
                 conn.execute('INSERT INTO schedule_assignments VALUES(?,?,?,?,?,?,?,?)',(identifier(),pid,a['work_order_id'],a['asset_id'],a['start_utc'],a['end_utc'],json.dumps(a['technician_ids']),json.dumps(a['parts'])))
                 conn.execute("UPDATE work_orders SET status='scheduled' WHERE id=?",(a['work_order_id'],))
+                from backend.scheduling.lifecycle import record_reconfirmation
+                record_reconfirmation(conn,a['work_order_id'],user)
         conn.execute('UPDATE schedule_proposals SET status=?,reviewed_by=?,reviewed_at=?,review_reason=? WHERE id=?',
                      (body.decision,user['id'],iso(),body.reason,pid))
         audit(conn,user,'review_schedule',pid,body.decision+': '+body.reason)

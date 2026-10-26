@@ -9,7 +9,7 @@ def run():
     if os.getenv('MAINTENANCEAI_MODE','demo')!='demo':raise RuntimeError('Measured demo reports cannot be seeded into production')
     migrate();seed_demo();imported=[]
     for mode in ['no_rag','docs_rag','tools_rag']:
-        candidates=[ROOT/f'docs/evaluation/coordination/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/meter-rounds/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/qr-pm/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/r1-intake/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/field-work/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/machine-onboarding/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/copilot-evaluation-{mode}.json']
+        candidates=[ROOT/f'docs/evaluation/lifecycle/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/coordination/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/meter-rounds/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/qr-pm/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/r1-intake/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/field-work/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/machine-onboarding/copilot-evaluation-{mode}.json',ROOT/f'docs/evaluation/copilot-evaluation-{mode}.json']
         reports=[json.loads(path.read_text()) for path in candidates if path.is_file()]
         report=next((r for r in reports if r['measurement_kind']=='actual_local_inference' and r['configuration']['id']==manifest(mode)['id']),None)
         if report is None:continue

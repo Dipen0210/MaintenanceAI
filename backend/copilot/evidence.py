@@ -61,9 +61,13 @@ def resolve(conn,user,asset_id,evidence_id):
         from backend.scheduling.service import order
         if kind=='schedule':
             assignment=conn.execute('SELECT * FROM schedule_assignments WHERE id=? AND asset_id=?',(rid,asset_id)).fetchone()
+            archived=False
+            if not assignment:
+                assignment=conn.execute('SELECT * FROM schedule_assignment_archive WHERE id=? AND asset_id=?',(rid,asset_id)).fetchone();archived=True
             if not assignment:raise HTTPException(404,'Schedule evidence not found')
             work=order(conn,user,assignment['work_order_id'])
             text=f'Internally approved maintenance window {assignment["start_utc"]} to {assignment["end_utc"]}; work order {work["id"]}; technicians '+', '.join(json.loads(assignment['technician_ids']))+'. No physical maintenance completion or equipment control is implied.'
+            if archived:text='Historical '+assignment['disposition']+' reservation. '+text+' This window is no longer reserved or authorized for new work.'
             return {**base,'title':'Approved maintenance schedule','text':text,'timestamp_utc':assignment['start_utc'],'role':'history'}
         work=order(conn,user,rid)
         if work['asset_id']!=asset_id:raise HTTPException(404,'Work-order evidence not found')
