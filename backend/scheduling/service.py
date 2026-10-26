@@ -48,6 +48,8 @@ def order(conn,user,wid):
         for reference in json.loads(report['evidence_ids']):resolve(conn,user,reference['asset_id'],reference['id'])
     from backend.scheduling.execution import snapshot
     value['execution']=snapshot(conn,wid)
+    from backend.scheduling.coordination import handover_snapshot
+    value['operations']=handover_snapshot(conn,wid)
     if value['execution']['status']:value['status']=value['execution']['status']
     return value
 
@@ -146,6 +148,7 @@ def proposal(conn,user,pid):
     for w in snapshot['orders']:order(conn,user,w['id'])
     value={k:json.loads(row[k]) if k=='result' else row[k] for k in ['id','created_at','config_id','status','result','reviewed_by','reviewed_at','review_reason']}
     for assignment in value['result'].get('assignments',[]):assignment['work_status']=order(conn,user,assignment['work_order_id'])['status']
+    value['operations_requests']=[dict(r) for r in conn.execute('SELECT * FROM operations_requests WHERE proposal_id=? ORDER BY start_utc,id',(pid,))]
     return value
 
 
@@ -174,6 +177,8 @@ def propose(body,user):
         for w in orders:order(conn,user,w['id'])
         pid=identifier();conn.execute('INSERT INTO schedule_proposals VALUES(?,?,?,?,?,?,?,?,NULL,NULL,NULL)',
             (pid,user['plant_id'],user['id'],iso(),config['id'],json.dumps(snapshot),json.dumps(result),'pending'))
+        from backend.scheduling.coordination import create_requests
+        create_requests(conn,pid,result.get('assignments',[]))
         audit(conn,user,'propose_schedule',pid,result['feasibility']+'; no resources reserved')
         return proposal(conn,user,pid)
 
@@ -208,6 +213,8 @@ def review_proposal(pid,body,user):
                     if not person:raise HTTPException(409,'Assigned technician identity is no longer available; revise resources')
                     order(conn,dict(person),a['work_order_id'])
                     bindings.append((a['work_order_id'],tid,uid,user['id'],iso()))
+            from backend.scheduling.coordination import confirm
+            confirm(conn,user,pid,assignments)
             conn.executemany('INSERT INTO work_user_assignments VALUES(?,?,?,?,?)',bindings)
             for a in assignments:
                 conn.execute('INSERT INTO schedule_assignments VALUES(?,?,?,?,?,?,?,?)',(identifier(),pid,a['work_order_id'],a['asset_id'],a['start_utc'],a['end_utc'],json.dumps(a['technician_ids']),json.dumps(a['parts'])))
@@ -224,7 +231,7 @@ def internal_records(conn,user,asset_id,kind,limit=20):
     for w in rows:
         if kind=='work_order':
             result.append(dict(id=w['id'],evidence_kind='work_order',external_id=w['id'],timestamp_utc=w['execution']['updated_at'] or w['created_at'],status=w['status']))
-        elif w['status'] in ['scheduled','in_progress','awaiting_verification']:
+        elif w['status'] in ['scheduled','in_progress','awaiting_verification','awaiting_return_to_service']:
             a=conn.execute('SELECT * FROM schedule_assignments WHERE work_order_id=?',(w['id'],)).fetchone()
             if a:result.append(dict(id=a['id'],evidence_kind='schedule',external_id=w['id'],timestamp_utc=a['start_utc'],status='approved'))
     return result[:limit]

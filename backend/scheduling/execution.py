@@ -20,7 +20,7 @@ def update(wid,body,user):
         role(conn,user,['administrator','engineer','reliability_engineer','maintenance_manager'])
         work=order(conn,user,wid);state=work['execution'];status=work['status']
         if state['version']!=body.expected_version:raise HTTPException(409,'Work changed. Refresh and review the latest handover before updating it.')
-        if status not in ['scheduled','in_progress','awaiting_verification','completed']:raise HTTPException(409,'Field updates require a manager-confirmed schedule')
+        if status not in ['scheduled','in_progress','awaiting_verification','awaiting_return_to_service','completed']:raise HTTPException(409,'Field updates require a manager-confirmed schedule')
         if quarantine_reason(body.notes):raise HTTPException(422,'Unsafe instructions cannot be recorded as work guidance')
         action=body.action
         if action in ['start','report_fixed']:
@@ -29,6 +29,8 @@ def update(wid,body,user):
         if action=='start':
             role(conn,user,['engineer','reliability_engineer'])
             if status!='scheduled':raise HTTPException(409,'Only scheduled work can be started')
+            from backend.scheduling.coordination import require_release
+            require_release(conn,wid)
             if not body.site_clearance_confirmed:raise HTTPException(422,'Confirm operations coordination, site permits and isolation before recording a start')
             window=state['window']
             if not window:raise HTTPException(409,'A confirmed assignment is required')
@@ -45,10 +47,13 @@ def update(wid,body,user):
             status='awaiting_verification'
         elif action in ['verify','return_to_work']:
             role(conn,user,['maintenance_manager'])
-            if status!='awaiting_verification':raise HTTPException(409,'A repair report must be awaiting verification')
+            if status=='awaiting_return_to_service' and action=='return_to_work':
+                from backend.scheduling.coordination import reopen
+                reopen(conn,wid,user,body.notes)
+            elif status!='awaiting_verification':raise HTTPException(409,'A repair report must be awaiting verification')
             report=next(e for e in reversed(state['events']) if e['action']=='report_fixed')
             if report['actor_id']==user['id']:raise HTTPException(403,'A different maintenance manager must verify this repair report')
-            status='completed' if action=='verify' else 'in_progress'
+            status=('awaiting_return_to_service' if work['operations'] else 'completed') if action=='verify' else ('scheduled' if status=='awaiting_return_to_service' else 'in_progress')
         elif action=='note' and status=='completed':raise HTTPException(409,'Verified work is closed. Create a new work order for further issues.')
         version=state['version']+1;now=iso()
         conn.execute('INSERT INTO work_execution VALUES(?,?,?,?) ON CONFLICT(work_order_id) DO UPDATE SET status=excluded.status,version=excluded.version,updated_at=excluded.updated_at',(wid,status,version,now))

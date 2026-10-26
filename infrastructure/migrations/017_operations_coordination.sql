@@ -1,0 +1,10 @@
+CREATE TABLE asset_operations_policy(asset_id TEXT PRIMARY KEY REFERENCES assets(id), required INTEGER NOT NULL CHECK(required IN(0,1)), version INTEGER NOT NULL, actor_id TEXT NOT NULL REFERENCES users(id), updated_at TEXT NOT NULL, reason TEXT NOT NULL);
+CREATE TABLE operations_requests(id TEXT PRIMARY KEY, proposal_id TEXT NOT NULL REFERENCES schedule_proposals(id), work_order_id TEXT NOT NULL REFERENCES work_orders(id), policy_version INTEGER NOT NULL, version INTEGER NOT NULL, status TEXT NOT NULL, start_utc TEXT NOT NULL, end_utc TEXT NOT NULL, actor_id TEXT REFERENCES users(id), decided_at TEXT, reason TEXT, UNIQUE(proposal_id,work_order_id));
+CREATE TABLE operations_handovers(work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id), request_id TEXT NOT NULL REFERENCES operations_requests(id), version INTEGER NOT NULL, status TEXT NOT NULL, actor_id TEXT REFERENCES users(id), updated_at TEXT NOT NULL);
+CREATE TABLE operations_events(id TEXT PRIMARY KEY, work_order_id TEXT NOT NULL REFERENCES work_orders(id), request_id TEXT REFERENCES operations_requests(id), actor_id TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL, action TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL);
+CREATE INDEX operations_events_work ON operations_events(work_order_id,created_at);
+CREATE TABLE operations_policy_history(asset_id TEXT NOT NULL REFERENCES assets(id),version INTEGER NOT NULL,required INTEGER NOT NULL,actor_id TEXT NOT NULL REFERENCES users(id),created_at TEXT NOT NULL,reason TEXT NOT NULL,PRIMARY KEY(asset_id,version));
+CREATE TABLE work_execution_next(work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id),status TEXT NOT NULL CHECK(status IN('scheduled','in_progress','awaiting_verification','awaiting_return_to_service','completed')),version INTEGER NOT NULL,updated_at TEXT NOT NULL);
+INSERT INTO work_execution_next SELECT * FROM work_execution;
+DROP TABLE work_execution;
+ALTER TABLE work_execution_next RENAME TO work_execution;

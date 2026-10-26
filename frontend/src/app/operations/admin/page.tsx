@@ -9,7 +9,7 @@ type Sensor={tag_id:string;unit:string;lower_bound:number;upper_bound:number;sta
 type Mapping=Asset&{sensors:Omit<Sensor,'warning'|'critical'>[];bindings:{family:string;dataset_id:string}[]};
 type Audit={id:string;actor_id:string|null;action:string;resource:string;timestamp_utc:string;outcome:string};
 const field='rounded border border-slate-600 bg-slate-900 px-3 py-2',button='rounded bg-sky-800 px-4 py-2 disabled:opacity-40';
-const roles=['engineer','maintenance_manager','reliability_engineer','administrator','operator'];
+const roles=['engineer','maintenance_manager','reliability_engineer','administrator','operator','operations_coordinator'];
 
 function SiteMetadata(){
  const [site,setSite]=useState<{name:string;location:string;mode:string;configuration:{display_timezone:string}}|null>(null),[reason,setReason]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState('');

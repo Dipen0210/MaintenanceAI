@@ -61,7 +61,7 @@ test('engineer investigation becomes a manager-reviewed, internally confirmed ma
  await work.getByRole('checkbox',{name:'Schedule candidate Review vibration sensor mounting',exact:true}).check();
  await page.getByRole('button',{name:'Propose feasible schedule',exact:true}).click();
  await expect(page.getByRole('status')).toContainText('Schedule feasible');
- const proposal=page.getByRole('article',{name:'Schedule proposal',exact:true});
+ const proposal=page.getByRole('article',{name:'Schedule proposal',exact:true}).filter({hasText:'Review vibration sensor mounting'});
  await expect(proposal).toContainText('feasible · pending');
  await expect(proposal).toContainText('Simulated inspection consumables: 1');
  await proposal.getByRole('button',{name:'Confirm schedule',exact:true}).click();

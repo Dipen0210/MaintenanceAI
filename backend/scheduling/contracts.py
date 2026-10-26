@@ -147,9 +147,11 @@ class WorkOrderResponse(Strict):
     reviewed_at:str|None
     review_reason:str|None
     execution:dict
+    operations:dict|None
 
 
 class ProposalResponse(Strict):
+    operations_requests:list[dict]
     id:str
     created_at:str
     config_id:str

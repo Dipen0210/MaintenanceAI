@@ -9,7 +9,7 @@ import Icon from './Icon';
 import SimulationControl from './SimulationControl';
 
 const groups=[
- {label:'Workspace',items:[['/operations','Dashboard','dashboard'],['/operations/my-work','My Work','calendar'],['/operations/issues','Issues','risk'],['/operations/assets','Assets','assets'],['/operations/scan','Scan machine','assets'],['/operations/risks','Priorities','risk'],['/operations/scheduling','Maintenance','calendar'],['/operations/preventive','Preventive plans','calendar'],['/operations/investigations','Investigations','spark']]},
+ {label:'Workspace',items:[['/operations','Dashboard','dashboard'],['/operations/my-work','My Work','calendar'],['/operations/issues','Issues','risk'],['/operations/assets','Assets','assets'],['/operations/scan','Scan machine','assets'],['/operations/risks','Priorities','risk'],['/operations/scheduling','Maintenance','calendar'],['/operations/preventive','Preventive plans','calendar'],['/operations/coordination','Coordination','calendar'],['/operations/investigations','Investigations','spark']]},
  {label:'Knowledge & system',items:[['/operations/documents','Documents','document'],['/operations/data','Data sources','data'],['/operations/models','Model registry','model'],['/operations/observability','AI evaluations','shield'],['/operations/admin','Administration','settings']]},
 ];
 export default function WorkspaceShell({children}:{children:React.ReactNode}){

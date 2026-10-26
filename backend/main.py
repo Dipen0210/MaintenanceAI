@@ -401,3 +401,5 @@ app.include_router(meters_router)
 from backend.routes.inspections import router as inspections_router
 app.include_router(inspections_router)
 app.include_router(asset_access_router)
+from backend.routes.coordination import router as coordination_router
+app.include_router(coordination_router)

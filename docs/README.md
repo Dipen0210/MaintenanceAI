@@ -4,6 +4,7 @@
 - [Machine onboarding and sensor gateways](deployment/MACHINE_ONBOARDING.md)
 - [Field work, repair reporting and verification](deployment/FIELD_WORKFLOW.md)
 - [Preventive maintenance and inspection rounds](guides/PREVENTIVE_MAINTENANCE.md): calendar/meter setup, counter reconciliation, field checklists and current limits.
+- [Operations coordination](guides/OPERATIONS_COORDINATION.md): downtime approval, equipment release and independent production return.
 - [System architecture](architecture/SYSTEM.md)
 - [Security boundaries](security/SECURITY.md)
 - [Evaluation and reproduction](evaluation/README.md)

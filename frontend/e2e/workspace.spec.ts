@@ -4,14 +4,14 @@ async function login(page:Page){await page.goto('/');await page.getByLabel('Pass
 test('dashboard navigation is organized and Copilot follows the selected equipment across pages',async({page})=>{
  test.setTimeout(90000);await page.setViewportSize({width:1440,height:1000});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await login(page);await expect(page).toHaveURL(/\/operations$/);const nav=page.getByRole('navigation',{name:'Primary navigation'});
- await expect(nav.getByRole('link')).toHaveText(['Dashboard','My Work','Issues','Assets','Scan machine','Priorities','Maintenance','Preventive plans','Investigations','Documents','Data sources','Model registry','AI evaluations']);
+ await expect(nav.getByRole('link')).toHaveText(['Dashboard','My Work','Issues','Assets','Scan machine','Priorities','Maintenance','Preventive plans','Coordination','Investigations','Documents','Data sources','Model registry','AI evaluations']);
  await expect(page.getByRole('button',{name:'Analyze synthetic conveyor incident',exact:true})).toHaveCount(0);
  await page.screenshot({animations:'disabled',path:'../docs/design/screenshots/workspace/workspace-dashboard.png',fullPage:true});
  await nav.getByRole('link',{name:'Assets',exact:true}).click();await page.getByLabel('Search assets').fill('PLA-PUMP-001');await expect(page.getByRole('row')).toHaveCount(2);
  await page.getByRole('link',{name:'Open PLA-PUMP-001',exact:true}).click();await expect(page.getByRole('heading',{name:'PLA-PUMP-001',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Ask Copilot',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Engineer Copilot assistant'});
  await expect(dialog.getByLabel('Copilot equipment')).toHaveValue('PLA-PUMP-001');await dialog.getByLabel('Copilot question').fill('Explain the source quality for this pump.');await page.keyboard.press('Escape');await expect(dialog).toBeHidden();await expect(page.getByRole('button',{name:'Ask Copilot',exact:true})).toBeFocused();
- for(const name of ['Priorities','Maintenance','Documents','Data sources','Model registry','AI evaluations']){
+ for(const name of ['Priorities','Maintenance','Coordination','Documents','Data sources','Model registry','AI evaluations']){
   await nav.getByRole('link',{name,exact:true}).click();await page.getByRole('button',{name:'Ask Copilot',exact:true}).click();await expect(dialog.getByLabel('Copilot equipment')).toHaveValue('PLA-PUMP-001');await expect(dialog.getByLabel('Copilot question')).toHaveValue('Explain the source quality for this pump.');await page.keyboard.press('Escape');
  }
  await nav.getByRole('link',{name:'Investigations',exact:true}).click();await expect(page.getByLabel('Investigation equipment')).toHaveValue('PLA-PUMP-001');
