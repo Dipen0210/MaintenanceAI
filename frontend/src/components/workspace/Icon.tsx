@@ -1,6 +1,7 @@
 import type {CSSProperties} from 'react';
 
 const paths:Record<string,string>={
+ bell:'M6 8a6 6 0 0112 0v6l2 3H4l2-3V8 M10 21h4',
  dashboard:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
  assets:'M4 7l8-4 8 4v10l-8 4-8-4V7z M4 7l8 4 8-4 M12 11v10',
  risk:'M12 3L2 21h20L12 3z M12 9v5 M12 17v1',

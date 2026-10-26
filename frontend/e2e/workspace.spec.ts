@@ -4,7 +4,7 @@ async function login(page:Page){await page.goto('/');await page.getByLabel('Pass
 test('dashboard navigation is organized and Copilot follows the selected equipment across pages',async({page})=>{
  test.setTimeout(90000);await page.setViewportSize({width:1440,height:1000});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await login(page);await expect(page).toHaveURL(/\/operations$/);const nav=page.getByRole('navigation',{name:'Primary navigation'});
- await expect(nav.getByRole('link')).toHaveText(['Dashboard','My Work','Issues','Assets','Scan machine','Priorities','Maintenance','Preventive plans','Coordination','Investigations','Documents','Data sources','Model registry','AI evaluations']);
+ await expect(nav.getByRole('link')).toHaveText(['Dashboard','My Work','Notifications','Issues','Assets','Scan machine','Priorities','Maintenance','Preventive plans','Coordination','Investigations','Documents','Data sources','Model registry','AI evaluations']);
  await expect(page.getByRole('button',{name:'Analyze synthetic conveyor incident',exact:true})).toHaveCount(0);
  await page.screenshot({animations:'disabled',path:'../docs/design/screenshots/workspace/workspace-dashboard.png',fullPage:true});
  await nav.getByRole('link',{name:'Assets',exact:true}).click();await page.getByLabel('Search assets').fill('PLA-PUMP-001');await expect(page.getByRole('row')).toHaveCount(2);

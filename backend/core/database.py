@@ -45,6 +45,10 @@ def migrate():
 
 
 def audit(conn, actor, action, resource, outcome):
+    event_id=identifier()
     conn.execute('INSERT INTO audit_events VALUES(?,?,?,?,?,?,?)',
-                 (identifier(),actor.get('id') if actor else None,actor.get('plant_id') if actor else None,
+                 (event_id,actor.get('id') if actor else None,actor.get('plant_id') if actor else None,
                   action,resource,iso(),outcome))
+
+    from backend.notifications.events import capture
+    capture(conn,action,resource,event_id)

@@ -58,3 +58,17 @@
  .workspace .asset-table td:last-child{justify-content:flex-end}
  .workspace .asset-table td:last-child a{display:inline-flex;align-items:center;justify-content:center;min-height:40px;min-width:40px}
 }
+
+/* Personal inbox and compact, accessible header badge. */
+.notification-launcher{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:8px;border:1px solid var(--ws-line);border-radius:10px;flex-shrink:0}
+.notification-launcher span{font-size:12px;min-width:14px;text-align:center}
+.notification-list{display:grid;gap:16px;margin:24px 0}
+.notification-card{padding:24px;min-width:0;overflow-wrap:anywhere}
+.notification-card h2{font-size:18px;margin:16px 0 6px}
+.notification-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center}
+.notification-meta .badge{white-space:normal}
+.notification-muted,.notification-meta small{color:var(--ws-muted);font-size:13px}
+.notification-card details{margin-top:16px}
+.notification-card details label{display:grid;gap:8px;margin:12px 0}
+.notification-card.is-escalated{border-left:3px solid #dfb65b}
+@media(max-width:600px){.notification-card{padding:18px}.topbar-actions{flex-wrap:wrap;justify-content:flex-end}.notification-launcher{padding:6px;min-height:36px}}

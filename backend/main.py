@@ -233,9 +233,14 @@ async def lifespan(app: FastAPI):
     
     from backend.preventive.service import worker
     preventive_task=asyncio.create_task(worker())
+    from backend.notifications.service import worker as notification_worker
+    notification_task=asyncio.create_task(notification_worker())
     try:
         yield
     finally:
+        notification_task.cancel()
+        try:await notification_task
+        except asyncio.CancelledError:pass
         preventive_task.cancel()
         try:await preventive_task
         except asyncio.CancelledError:pass
@@ -403,3 +408,6 @@ app.include_router(inspections_router)
 app.include_router(asset_access_router)
 from backend.routes.coordination import router as coordination_router
 app.include_router(coordination_router)
+
+from backend.routes.notifications import router as notifications_router
+app.include_router(notifications_router)

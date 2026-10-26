@@ -1,0 +1,8 @@
+CREATE TABLE notification_policy(plant_id TEXT PRIMARY KEY REFERENCES plants(id),version INTEGER NOT NULL,escalation_minutes INTEGER NOT NULL,escalation_enabled INTEGER NOT NULL,actor_id TEXT NOT NULL REFERENCES users(id),updated_at TEXT NOT NULL,reason TEXT NOT NULL);
+CREATE TABLE notification_policy_history(id TEXT PRIMARY KEY,plant_id TEXT NOT NULL REFERENCES plants(id),version INTEGER NOT NULL,actor_id TEXT NOT NULL REFERENCES users(id),created_at TEXT NOT NULL,content TEXT NOT NULL);
+CREATE TABLE notification_events(id TEXT PRIMARY KEY,event_key TEXT NOT NULL UNIQUE,plant_id TEXT NOT NULL REFERENCES plants(id),asset_id TEXT NOT NULL REFERENCES assets(id),kind TEXT NOT NULL,resource_id TEXT NOT NULL,revision TEXT NOT NULL,created_at TEXT NOT NULL,parent_id TEXT REFERENCES notification_events(id),escalate_after INTEGER NOT NULL);
+CREATE TABLE notification_deliveries(id TEXT PRIMARY KEY,event_id TEXT NOT NULL REFERENCES notification_events(id),user_id TEXT NOT NULL REFERENCES users(id),audience TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN('pending','delivered','failed','suppressed')),attempts INTEGER NOT NULL DEFAULT 0,next_attempt TEXT NOT NULL,delivered_at TEXT,read_at TEXT,acknowledged_at TEXT,acknowledgement TEXT,last_error TEXT,UNIQUE(event_id,user_id));
+CREATE INDEX notification_inbox ON notification_deliveries(user_id,status);
+CREATE INDEX notification_due ON notification_deliveries(status,next_attempt);
+CREATE TABLE notification_conditions(asset_id TEXT PRIMARY KEY REFERENCES assets(id),episode INTEGER NOT NULL,is_open INTEGER NOT NULL,event_id TEXT REFERENCES notification_events(id));
+CREATE TABLE notification_worker(id TEXT PRIMARY KEY,last_success TEXT NOT NULL);
