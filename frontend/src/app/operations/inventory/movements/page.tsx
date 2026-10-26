@@ -1,0 +1,6 @@
+'use client';
+import {useEffect,useState} from 'react';
+import Link from 'next/link';
+import {operationsRequest} from '@/lib/operations';
+type Movement={id:string;part_id:string;work_order_id:string|null;action:string;quantity:number;actor_id:string;created_at:string;reason:string};
+export default function Movements(){const [rows,setRows]=useState<Movement[]|null>(null),[error,setError]=useState('');useEffect(()=>{let active=true;operationsRequest<{history:Movement[]}>('/inventory').then(r=>{if(active)setRows(r.history);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[]);return <main><div className="page-heading"><div><span className="eyebrow">Inventory · Stock movements</span><h1>Movement history</h1><p>Latest 200 attributed movements within your current access.</p></div></div>{error&&<p role="alert">{error}</p>}<section className="surface intake-panel">{!rows&&!error&&<p>Loading movements…</p>}{rows?.length===0&&<p>No movements recorded.</p>}<ol className="issue-history">{rows?.map(m=><li key={m.id}><strong>{m.action} · {m.quantity} × {m.part_id}</strong><small>{new Date(m.created_at).toLocaleString()} · {m.actor_id}</small><p>{m.reason}</p>{m.work_order_id&&<Link className="text-link" href={`/operations/scheduling?view=work&work=${m.work_order_id}`}>Open work order →</Link>}</li>)}</ol></section></main>;}

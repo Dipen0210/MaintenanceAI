@@ -414,3 +414,6 @@ app.include_router(notifications_router)
 
 from backend.routes.inventory import router as inventory_router
 app.include_router(inventory_router)
+
+from backend.routes.smartvendor import router as smartvendor_router
+app.include_router(smartvendor_router)
